@@ -31,8 +31,7 @@ public class HomeController : Controller
             return View("Index", _portalDataService.GetPortal("The feature update request is invalid.", "danger"));
         }
 
-        var message = _portalDataService.ToggleFeature(request);
-        return View("Index", _portalDataService.GetPortal(message, "success"));
+        return RenderPortalOperation(() => _portalDataService.ToggleFeature(request));
     }
 
     [HttpPost]
@@ -44,8 +43,7 @@ public class HomeController : Controller
             return View("Index", _portalDataService.GetPortal("The add-on purchase request is invalid.", "danger"));
         }
 
-        var message = _portalDataService.PurchaseAddOn(request);
-        return View("Index", _portalDataService.GetPortal(message, "success"));
+        return RenderPortalOperation(() => _portalDataService.PurchaseAddOn(request));
     }
 
     [HttpPost]
@@ -57,8 +55,7 @@ public class HomeController : Controller
             return View("Index", _portalDataService.GetPortal("The payment request is invalid.", "danger"));
         }
 
-        var message = _portalDataService.PayInvoice(request);
-        return View("Index", _portalDataService.GetPortal(message, "success"));
+        return RenderPortalOperation(() => _portalDataService.PayInvoice(request));
     }
 
     [HttpPost]
@@ -146,7 +143,7 @@ public class HomeController : Controller
         const string header = "%PDF-1.4\n";
         var pdf = new StringBuilder(header);
 
-        var offsets = new List<int> { 0 };
+        var offsets = new List<int>();
         var runningLength = Encoding.ASCII.GetByteCount(header);
         foreach (var pdfObject in objects)
         {
@@ -158,14 +155,28 @@ public class HomeController : Controller
         var xrefOffset = runningLength;
         pdf.Append($"xref\n0 {objects.Count + 1}\n");
         pdf.Append("0000000000 65535 f \n");
-        for (var index = 1; index < offsets.Count; index++)
+        foreach (var offset in offsets)
         {
-            pdf.Append(offsets[index].ToString("D10")).Append(" 00000 n \n");
+            pdf.Append(offset.ToString("D10")).Append(" 00000 n \n");
         }
 
         pdf.Append("trailer << /Size ").Append(objects.Count + 1).Append(" /Root 1 0 R >>\n");
         pdf.Append("startxref\n").Append(xrefOffset).Append("\n%%EOF");
 
         return Encoding.ASCII.GetBytes(pdf.ToString());
+    }
+
+    private IActionResult RenderPortalOperation(Func<string> operation)
+    {
+        try
+        {
+            var message = operation();
+            return View("Index", _portalDataService.GetPortal(message, "success"));
+        }
+        catch (InvalidOperationException exception)
+        {
+            _logger.LogWarning(exception, "Portal operation failed.");
+            return View("Index", _portalDataService.GetPortal(exception.Message, "danger"));
+        }
     }
 }
