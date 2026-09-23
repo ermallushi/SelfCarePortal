@@ -116,6 +116,7 @@ public class HomeController : Controller
         lines.AddRange(invoice.StatementLines);
 
         static string Escape(string value) => value.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");
+        static string SanitizePdfText(string value) => new(value.Select(character => character <= 127 ? character : '?').ToArray());
 
         var content = new StringBuilder();
         content.AppendLine("BT");
@@ -129,7 +130,7 @@ public class HomeController : Controller
                 content.AppendLine("0 -24 Td");
             }
 
-            content.Append('(').Append(Escape(lines[index])).AppendLine(") Tj");
+            content.Append('(').Append(Escape(SanitizePdfText(lines[index]))).AppendLine(") Tj");
         }
 
         content.AppendLine("ET");

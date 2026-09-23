@@ -167,17 +167,17 @@ public class InMemoryPortalDataService : IPortalDataService
 
             return new PortalViewModel
             {
-                AccessSummary = _access,
+                AccessSummary = Clone(_access),
                 Account = _account,
                 LineMetrics = metrics,
                 Lines = _lines.Select(Clone).ToArray(),
-                AddOnCatalog = _addOns.ToArray(),
-                Tariffs = _tariffs.ToArray(),
+                AddOnCatalog = _addOns.Select(Clone).ToArray(),
+                Tariffs = _tariffs.Select(Clone).ToArray(),
                 Invoices = _invoices.Select(Clone).ToArray(),
-                Tickets = _tickets.ToArray(),
-                SupportContact = _supportContact,
-                Offers = _offers.ToArray(),
-                Architecture = _architecture,
+                Tickets = _tickets.Select(Clone).ToArray(),
+                SupportContact = Clone(_supportContact),
+                Offers = _offers.Select(Clone).ToArray(),
+                Architecture = Clone(_architecture),
                 AssistantQuestion = assistantQuestion,
                 AssistantResponse = assistantResponse,
                 BannerMessage = bannerMessage,
@@ -300,5 +300,59 @@ public class InMemoryPortalDataService : IPortalDataService
         Status = invoice.Status,
         DueDate = invoice.DueDate,
         StatementLines = invoice.StatementLines.ToArray()
+    };
+
+    private static CustomerAccessSummary Clone(CustomerAccessSummary accessSummary) => new()
+    {
+        CustomerLoginMethod = accessSummary.CustomerLoginMethod,
+        StaffLoginMethod = accessSummary.StaffLoginMethod,
+        Roles = accessSummary.Roles.ToArray()
+    };
+
+    private static AddOnOption Clone(AddOnOption addOn) => new()
+    {
+        Code = addOn.Code,
+        Name = addOn.Name,
+        Description = addOn.Description,
+        Price = addOn.Price
+    };
+
+    private static TariffPackage Clone(TariffPackage tariff) => new()
+    {
+        Name = tariff.Name,
+        Description = tariff.Description,
+        BillingCycle = tariff.BillingCycle,
+        Eligibility = tariff.Eligibility
+    };
+
+    private static SupportTicket Clone(SupportTicket ticket) => new()
+    {
+        TicketId = ticket.TicketId,
+        Subject = ticket.Subject,
+        Priority = ticket.Priority,
+        Status = ticket.Status,
+        OpenedOn = ticket.OpenedOn
+    };
+
+    private static SupportContact Clone(SupportContact contact) => new()
+    {
+        Name = contact.Name,
+        Phone = contact.Phone,
+        Email = contact.Email,
+        WhatsAppLink = contact.WhatsAppLink
+    };
+
+    private static OfferRecommendation Clone(OfferRecommendation offer) => new()
+    {
+        Title = offer.Title,
+        Summary = offer.Summary,
+        Segment = offer.Segment,
+        Trigger = offer.Trigger
+    };
+
+    private static ArchitectureSummary Clone(ArchitectureSummary architecture) => new()
+    {
+        Layers = architecture.Layers.ToArray(),
+        IntegrationNotes = architecture.IntegrationNotes.ToArray()
     };
 }
