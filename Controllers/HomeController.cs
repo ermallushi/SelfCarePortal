@@ -142,17 +142,19 @@ public class HomeController : Controller
         objects.Add($"4 0 obj << /Length {Encoding.ASCII.GetByteCount(stream)} >> stream\n{stream}endstream\nendobj\n");
         objects.Add("5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n");
 
-        var pdf = new StringBuilder();
-        pdf.Append("%PDF-1.4\n");
+        const string header = "%PDF-1.4\n";
+        var pdf = new StringBuilder(header);
 
         var offsets = new List<int> { 0 };
+        var runningLength = Encoding.ASCII.GetByteCount(header);
         foreach (var pdfObject in objects)
         {
-            offsets.Add(Encoding.ASCII.GetByteCount(pdf.ToString()));
+            offsets.Add(runningLength);
             pdf.Append(pdfObject);
+            runningLength += Encoding.ASCII.GetByteCount(pdfObject);
         }
 
-        var xrefOffset = Encoding.ASCII.GetByteCount(pdf.ToString());
+        var xrefOffset = runningLength;
         pdf.Append($"xref\n0 {objects.Count + 1}\n");
         pdf.Append("0000000000 65535 f \n");
         for (var index = 1; index < offsets.Count; index++)

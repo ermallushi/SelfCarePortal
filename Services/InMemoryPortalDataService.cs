@@ -214,7 +214,6 @@ public class InMemoryPortalDataService : IPortalDataService
             var addOn = _addOns.FirstOrDefault(item => item.Code == request.AddOnCode)
                 ?? throw new InvalidOperationException("The requested add-on is not available.");
 
-            line.ServiceStatus = "Active";
             return $"{addOn.Name} requested for {line.Number}. The purchase will be reflected in the current billing cycle.";
         }
     }
@@ -247,11 +246,12 @@ public class InMemoryPortalDataService : IPortalDataService
 
     public string AskAssistant(string question)
     {
-        var normalized = question.Trim().ToLowerInvariant();
-        if (string.IsNullOrWhiteSpace(normalized))
+        if (string.IsNullOrWhiteSpace(question))
         {
             return "Ask about invoices, service activation or support tickets to get quick guidance.";
         }
+
+        var normalized = question.Trim().ToLowerInvariant();
 
         if (normalized.Contains("invoice") || normalized.Contains("bill"))
         {
