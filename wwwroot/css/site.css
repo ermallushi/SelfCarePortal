@@ -1,0 +1,110 @@
+html {
+  font-size: 14px;
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+body {
+  min-height: 100vh;
+  background: #f4f7fb;
+  color: #172033;
+}
+
+.portal-header {
+  background: linear-gradient(135deg, #0d1f66, #1f4fd7);
+}
+
+.navbar-brand,
+.nav-link {
+  color: #fff !important;
+}
+
+.hero-card {
+  padding: 2rem;
+  border-radius: 1.5rem;
+  background: linear-gradient(135deg, #ffffff, #edf3ff);
+  box-shadow: 0 1rem 2rem rgba(13, 31, 102, 0.08);
+}
+
+.portal-kicker {
+  display: inline-block;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  color: #355acb;
+  margin-bottom: 0.75rem;
+}
+
+.auth-summary,
+.detail-card,
+.metric-card,
+.assistant-response,
+.support-contact,
+.architecture-panel {
+  border-radius: 1rem;
+}
+
+.detail-card,
+.metric-card,
+.assistant-response,
+.support-contact,
+.architecture-panel {
+  padding: 1rem;
+  background: #f8faff;
+  border: 1px solid #dbe4ff;
+}
+
+.detail-card span,
+.metric-card span {
+  display: block;
+  font-size: 0.85rem;
+  color: #63708c;
+  margin-bottom: 0.4rem;
+}
+
+.detail-card strong,
+.metric-card strong {
+  font-size: 1rem;
+}
+
+.metric-card {
+  border-width: 2px;
+}
+
+.compact-card {
+  padding: 0.9rem 1rem;
+}
+
+.assistant-response {
+  background: #fff;
+}
+
+.architecture-panel pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.78rem;
+  color: #213056;
+}
+
+.table > :not(caption) > * > * {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.footer {
+  background: #fff;
+}
+
+.btn-primary {
+  background-color: #1f4fd7;
+  border-color: #1f4fd7;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: #173da9;
+  border-color: #173da9;
+}
