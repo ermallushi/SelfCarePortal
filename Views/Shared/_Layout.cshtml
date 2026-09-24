@@ -1,3 +1,4 @@
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -51,7 +52,7 @@
                 <div class="small text-white-50">Enterprise access, CRM-backed line visibility, and managed customer self-care.</div>
             </div>
             <div class="small text-white-50 text-md-end">
-                <div>Active Directory domain: amc.al</div>
+                <div>Active Directory domain: @(Configuration["ActiveDirectory:Domain"] ?? "configured securely")</div>
                 <div>&copy; 2026 ONE Albania inspired portal experience</div>
             </div>
         </div>

@@ -23,6 +23,7 @@ public class PortalDataService : IPortalDataService
     private readonly SmsGatewayOptions _smsGatewayOptions;
     private readonly CrmGatewayOptions _crmGatewayOptions;
     private readonly BrmGatewayOptions _brmGatewayOptions;
+    private readonly object _stateLock = new();
     private readonly ConcurrentDictionary<string, PendingOtpState> _pendingOtps = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, FeatureState> _lineFeatures = new(StringComparer.Ordinal);
     private readonly List<AddOnOption> _addOns =
@@ -234,7 +235,7 @@ public class PortalDataService : IPortalDataService
     public string ToggleFeature(FeatureUpdateRequest request)
     {
         var lineNumber = NormalizeMsisdn(request.LineNumber);
-        var state = _lineFeatures.AddOrUpdate(lineNumber, CreateDefaultFeatureState(), (_, current) => current);
+        var state = _lineFeatures.GetOrAdd(lineNumber, _ => CreateDefaultFeatureState());
 
         var updated = request.Feature switch
         {
@@ -275,16 +276,19 @@ public class PortalDataService : IPortalDataService
 
     public string PayInvoice(PayInvoiceRequest request)
     {
-        var invoice = _invoices.FirstOrDefault(item => item.InvoiceId == request.InvoiceId)
-            ?? throw new InvalidOperationException("The invoice could not be found.");
-
-        if (invoice.Status == "Paid")
+        lock (_stateLock)
         {
-            return $"{invoice.InvoiceId} is already marked as paid.";
-        }
+            var invoice = _invoices.FirstOrDefault(item => item.InvoiceId == request.InvoiceId)
+                ?? throw new InvalidOperationException("The invoice could not be found.");
 
-        invoice.Status = "Paid";
-        return $"Payment received for {invoice.InvoiceId}.";
+            if (invoice.Status == "Paid")
+            {
+                return $"{invoice.InvoiceId} is already marked as paid.";
+            }
+
+            invoice.Status = "Paid";
+            return $"Payment received for {invoice.InvoiceId}.";
+        }
     }
 
     public InvoiceSummary? GetInvoice(string invoiceId)
