@@ -11,6 +11,7 @@ namespace SelfCarePortal.Services;
 public class PortalDataService : IPortalDataService
 {
     private const int MaxOtpAttempts = 5;
+    private const string PortalHttpClientName = "PortalClient";
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web)
     {
         PropertyNameCaseInsensitive = true
@@ -169,16 +170,27 @@ public class PortalDataService : IPortalDataService
             Content = JsonContent.Create(payload)
         };
 
-        using var response = await _httpClientFactory.CreateClient().SendAsync(request, cancellationToken);
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            throw new InvalidOperationException($"OTP delivery failed with HTTP {(int)response.StatusCode}.");
-        }
+            using var response = await _httpClientFactory.CreateClient(PortalHttpClientName).SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new InvalidOperationException($"OTP delivery failed with HTTP {(int)response.StatusCode}.");
+            }
 
-        var result = await DeserializeAsync<SmsResponse>(response, cancellationToken);
-        if (result?.ResultCode != 0)
+            var result = await DeserializeAsync<SmsResponse>(response, cancellationToken);
+            if (result?.ResultCode != 0)
+            {
+                throw new InvalidOperationException(result?.ResultMessage ?? "The OTP gateway rejected the request.");
+            }
+        }
+        catch (HttpRequestException exception)
         {
-            throw new InvalidOperationException(result?.ResultMessage ?? "The OTP gateway rejected the request.");
+            throw new InvalidOperationException("The OTP gateway could not be reached.", exception);
+        }
+        catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new InvalidOperationException("The OTP gateway did not respond in time.", exception);
         }
 
         _pendingOtps[normalizedMobile] = new PendingOtpState(otpCode, DateTimeOffset.UtcNow.AddMinutes(5), 0);
@@ -337,19 +349,30 @@ public class PortalDataService : IPortalDataService
             }
         };
 
-        using var response = await _httpClientFactory.CreateClient().PostAsJsonAsync(_crmGatewayOptions.WebServiceUrl, payload, cancellationToken);
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            throw new InvalidOperationException($"CRM profile lookup failed with HTTP {(int)response.StatusCode}.");
-        }
+            using var response = await _httpClientFactory.CreateClient(PortalHttpClientName).PostAsJsonAsync(_crmGatewayOptions.WebServiceUrl, payload, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new InvalidOperationException($"CRM profile lookup failed with HTTP {(int)response.StatusCode}.");
+            }
 
-        var profileResponse = await DeserializeAsync<CrmProfileResponse>(response, cancellationToken);
-        if (profileResponse is null || !profileResponse.Success || profileResponse.Result?.Code != 0 || profileResponse.Result.CustomerDetails?.CustomerAccount is null)
+            var profileResponse = await DeserializeAsync<CrmProfileResponse>(response, cancellationToken);
+            if (profileResponse is null || !profileResponse.Success || profileResponse.Result?.Code != 0 || profileResponse.Result.CustomerDetails?.CustomerAccount is null)
+            {
+                throw new InvalidOperationException(profileResponse?.Result?.Message ?? "CRM profile lookup did not return customer details.");
+            }
+
+            return new CustomerProfileContext(profileResponse.Result.CustomerDetails);
+        }
+        catch (HttpRequestException exception)
         {
-            throw new InvalidOperationException(profileResponse?.Result?.Message ?? "CRM profile lookup did not return customer details.");
+            throw new InvalidOperationException("The CRM profile service could not be reached.", exception);
         }
-
-        return new CustomerProfileContext(profileResponse.Result.CustomerDetails);
+        catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new InvalidOperationException("The CRM profile service did not respond in time.", exception);
+        }
     }
 
     private async Task<IReadOnlyList<CorporateLine>> GetLinesAsync(CustomerProfileContext profile, CancellationToken cancellationToken)
@@ -386,20 +409,31 @@ public class PortalDataService : IPortalDataService
             password = _brmGatewayOptions.Password
         };
 
-        using var response = await _httpClientFactory.CreateClient().PostAsJsonAsync(_brmGatewayOptions.AuthTokenUrl, payload, cancellationToken);
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            throw new InvalidOperationException($"BRM token request failed with HTTP {(int)response.StatusCode}.");
-        }
+            using var response = await _httpClientFactory.CreateClient(PortalHttpClientName).PostAsJsonAsync(_brmGatewayOptions.AuthTokenUrl, payload, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new InvalidOperationException($"BRM token request failed with HTTP {(int)response.StatusCode}.");
+            }
 
-        var tokenResponse = await DeserializeAsync<BrmTokenResponse>(response, cancellationToken);
-        var token = tokenResponse?.ResponseObject?.Token;
-        if (tokenResponse?.ResponseCode != "0" || string.IsNullOrWhiteSpace(token))
+            var tokenResponse = await DeserializeAsync<BrmTokenResponse>(response, cancellationToken);
+            var token = tokenResponse?.ResponseObject?.Token;
+            if (tokenResponse?.ResponseCode != "0" || string.IsNullOrWhiteSpace(token))
+            {
+                throw new InvalidOperationException(tokenResponse?.ResponseMessage ?? "The BRM token request did not return a usable token.");
+            }
+
+            return token;
+        }
+        catch (HttpRequestException exception)
         {
-            throw new InvalidOperationException(tokenResponse?.ResponseMessage ?? "The BRM token request did not return a usable token.");
+            throw new InvalidOperationException("The BRM authorization service could not be reached.", exception);
         }
-
-        return token;
+        catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new InvalidOperationException("The BRM authorization service did not respond in time.", exception);
+        }
     }
 
     private async Task<IReadOnlyList<string>> GetServiceInstanceNumbersAsync(string customerAccountNumber, string token, CancellationToken cancellationToken)
@@ -423,23 +457,34 @@ public class PortalDataService : IPortalDataService
         };
         request.Headers.TryAddWithoutValidation("Authorization", token);
 
-        using var response = await _httpClientFactory.CreateClient().SendAsync(request, cancellationToken);
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            throw new InvalidOperationException($"BRM dashboard lookup failed with HTTP {(int)response.StatusCode}.");
-        }
+            using var response = await _httpClientFactory.CreateClient(PortalHttpClientName).SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new InvalidOperationException($"BRM dashboard lookup failed with HTTP {(int)response.StatusCode}.");
+            }
 
-        var dashboardResponse = await DeserializeAsync<BrmDashboardResponse>(response, cancellationToken);
-        if (dashboardResponse?.ResponseCode != "0")
+            var dashboardResponse = await DeserializeAsync<BrmDashboardResponse>(response, cancellationToken);
+            if (dashboardResponse?.ResponseCode != "0")
+            {
+                throw new InvalidOperationException(dashboardResponse?.ResponseMessage ?? "The BRM dashboard lookup did not succeed.");
+            }
+
+            return dashboardResponse.ResponseObject?.ServiceInstanceDetailsList?
+                .Where(item => !string.IsNullOrWhiteSpace(item.SiNo))
+                .Select(item => item.SiNo!)
+                .Distinct(StringComparer.Ordinal)
+                .ToArray() ?? Array.Empty<string>();
+        }
+        catch (HttpRequestException exception)
         {
-            throw new InvalidOperationException(dashboardResponse?.ResponseMessage ?? "The BRM dashboard lookup did not succeed.");
+            throw new InvalidOperationException("The BRM dashboard service could not be reached.", exception);
         }
-
-        return dashboardResponse.ResponseObject?.ServiceInstanceDetailsList?
-            .Where(item => !string.IsNullOrWhiteSpace(item.SiNo))
-            .Select(item => item.SiNo!)
-            .Distinct(StringComparer.Ordinal)
-            .ToArray() ?? Array.Empty<string>();
+        catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new InvalidOperationException("The BRM dashboard service did not respond in time.", exception);
+        }
     }
 
     private async Task<ServiceInstanceRecord?> GetServiceInstanceDetailAsync(string serviceInstanceNumber, CancellationToken cancellationToken)
@@ -454,19 +499,30 @@ public class PortalDataService : IPortalDataService
             query
         };
 
-        using var response = await _httpClientFactory.CreateClient().PostAsJsonAsync(_crmGatewayOptions.WebServiceUrl, payload, cancellationToken);
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            throw new InvalidOperationException($"CRM service-instance query failed with HTTP {(int)response.StatusCode} for {serviceInstanceNumber}.");
-        }
+            using var response = await _httpClientFactory.CreateClient(PortalHttpClientName).PostAsJsonAsync(_crmGatewayOptions.WebServiceUrl, payload, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new InvalidOperationException($"CRM service-instance query failed with HTTP {(int)response.StatusCode} for {serviceInstanceNumber}.");
+            }
 
-        var queryResponse = await DeserializeAsync<CrmQueryResponse>(response, cancellationToken);
-        if (queryResponse is null || !queryResponse.Success)
+            var queryResponse = await DeserializeAsync<CrmQueryResponse>(response, cancellationToken);
+            if (queryResponse is null || !queryResponse.Success)
+            {
+                throw new InvalidOperationException($"CRM service-instance query failed for {serviceInstanceNumber}.");
+            }
+
+            return queryResponse.Result?.FirstOrDefault();
+        }
+        catch (HttpRequestException exception)
         {
-            throw new InvalidOperationException($"CRM service-instance query failed for {serviceInstanceNumber}.");
+            throw new InvalidOperationException("The CRM service-instance lookup could not be reached.", exception);
         }
-
-        return queryResponse.Result?.FirstOrDefault();
+        catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new InvalidOperationException("The CRM service-instance lookup did not respond in time.", exception);
+        }
     }
 
     private PortalViewModel CreatePortal(CustomerAccessSummary accessSummary, PortalAuthenticationState authentication, AccountOverview account, IReadOnlyList<CorporateLine> lines, string? bannerMessage, string bannerTone, string? assistantQuestion, string? assistantResponse)
