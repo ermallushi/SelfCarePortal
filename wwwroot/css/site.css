@@ -1,0 +1,435 @@
+:root {
+  --portal-red: #d71920;
+  --portal-red-dark: #a70f17;
+  --portal-red-soft: #fff1f2;
+  --portal-dark: #111111;
+  --portal-surface: #ffffff;
+  --portal-surface-muted: #fff7f7;
+  --portal-border: rgba(215, 25, 32, 0.12);
+  --portal-text: #222222;
+  --portal-text-muted: #6b6b6b;
+  --portal-shadow: 0 1.5rem 3rem rgba(122, 16, 20, 0.12);
+}
+
+html {
+  font-size: 14px;
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top right, rgba(215, 25, 32, 0.12), transparent 32%),
+    linear-gradient(180deg, #fff5f5 0%, #ffffff 22%, #fffaf8 100%);
+  color: var(--portal-text);
+  font-family: Inter, "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+}
+
+.top-strip {
+  background: var(--portal-dark);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.78rem;
+  padding: 0.5rem 0;
+}
+
+.portal-header {
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  background: rgba(215, 25, 32, 0.94);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 0.75rem 1.5rem rgba(122, 16, 20, 0.12);
+}
+
+.navbar-brand,
+.nav-link {
+  color: #fff !important;
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.5rem;
+  height: 2.2rem;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--portal-red);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  margin-right: 0.6rem;
+  padding: 0 0.85rem;
+}
+
+.brand-copy {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.nav-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.45rem 0.85rem;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: 0.82rem;
+}
+
+.portal-shell {
+  position: relative;
+}
+
+.hero-card {
+  position: relative;
+  overflow: hidden;
+  padding: 2rem;
+  border-radius: 2rem;
+  background:
+    linear-gradient(140deg, rgba(215, 25, 32, 0.98), rgba(167, 15, 23, 0.92)),
+    linear-gradient(180deg, #d71920, #980812);
+  color: #fff;
+  box-shadow: var(--portal-shadow);
+}
+
+.hero-card::after {
+  content: "";
+  position: absolute;
+  inset: auto -8% -20% auto;
+  width: 18rem;
+  height: 18rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.portal-kicker,
+.section-eyebrow {
+  display: inline-block;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.portal-kicker {
+  color: rgba(255, 255, 255, 0.74);
+  margin-bottom: 0.85rem;
+}
+
+.section-eyebrow {
+  color: var(--portal-red);
+  margin-bottom: 0.75rem;
+}
+
+.hero-copy {
+  color: rgba(255, 255, 255, 0.86);
+  max-width: 44rem;
+}
+
+.hero-pills,
+.hero-stat-grid {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  padding: 0.55rem 0.95rem;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 0.9rem;
+}
+
+.hero-stat-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.hero-stat-card,
+.customer-session-card,
+.status-summary {
+  padding: 1rem 1.15rem;
+  border-radius: 1.15rem;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.hero-stat-card span,
+.customer-session-card span,
+.status-summary span,
+.detail-card span,
+.metric-card span {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--portal-text-muted);
+  margin-bottom: 0.35rem;
+}
+
+.hero-stat-card span,
+.hero-stat-card strong,
+.customer-session-card span,
+.customer-session-card strong,
+.status-summary span,
+.status-summary strong {
+  color: #fff;
+}
+
+.portal-card,
+.auth-panel,
+.detail-card,
+.metric-card,
+.assistant-response,
+.support-contact,
+.architecture-panel {
+  border-radius: 1.5rem;
+}
+
+.portal-card,
+.auth-panel {
+  background: var(--portal-surface);
+  border: 1px solid var(--portal-border);
+  box-shadow: 0 1rem 2rem rgba(17, 17, 17, 0.04);
+  padding: 1.6rem;
+}
+
+.auth-panel {
+  position: relative;
+}
+
+.status-dot {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 50%;
+  background: #ffd2d4;
+  box-shadow: 0 0 0 0.45rem rgba(215, 25, 32, 0.12);
+}
+
+.status-dot.is-live {
+  background: #15c66b;
+  box-shadow: 0 0 0 0.45rem rgba(21, 198, 107, 0.15);
+}
+
+.role-badge,
+.surface-chip {
+  background: var(--portal-red-soft);
+  color: var(--portal-red);
+  border: 1px solid rgba(215, 25, 32, 0.12);
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  font-weight: 600;
+}
+
+.surface-chip {
+  font-size: 0.85rem;
+}
+
+.portal-input-group .form-control,
+.form-select {
+  min-height: 3rem;
+  border-radius: 0.95rem;
+  border-color: rgba(17, 17, 17, 0.12);
+}
+
+.portal-input-group .btn {
+  border-radius: 0.95rem;
+}
+
+.btn-portal-primary,
+.btn-primary {
+  background: var(--portal-red);
+  border-color: var(--portal-red);
+  color: #fff;
+}
+
+.btn-portal-primary:hover,
+.btn-portal-primary:focus,
+.btn-primary:hover,
+.btn-primary:focus {
+  background: var(--portal-red-dark);
+  border-color: var(--portal-red-dark);
+  color: #fff;
+}
+
+.btn-portal-outline {
+  background: #fff;
+  color: var(--portal-red);
+  border: 1px solid rgba(215, 25, 32, 0.24);
+}
+
+.btn-portal-outline:hover,
+.btn-portal-outline:focus {
+  background: var(--portal-red-soft);
+  color: var(--portal-red-dark);
+  border-color: rgba(215, 25, 32, 0.4);
+}
+
+.portal-alert {
+  border-radius: 1.1rem;
+  border: 0;
+  box-shadow: 0 0.75rem 1.4rem rgba(17, 17, 17, 0.06);
+}
+
+.brand-panel .portal-card,
+.banner-card {
+  height: 100%;
+}
+
+.accent-card {
+  background: linear-gradient(160deg, #d71920, #ac0f17);
+  color: #fff;
+  border-color: transparent;
+}
+
+.integration-list,
+.timeline-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.timeline-item {
+  position: relative;
+  padding-left: 1.2rem;
+}
+
+.timeline-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.35rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--portal-red);
+}
+
+.integration-list {
+  list-style: none;
+  padding: 0;
+}
+
+.integration-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.integration-list li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.integration-list span {
+  color: rgba(255, 255, 255, 0.74);
+}
+
+.detail-card,
+.metric-card,
+.assistant-response,
+.support-contact,
+.architecture-panel {
+  padding: 1rem;
+  background: var(--portal-surface-muted);
+  border: 1px solid var(--portal-border);
+}
+
+.detail-card strong,
+.metric-card strong {
+  font-size: 1rem;
+}
+
+.metric-card {
+  border-width: 2px;
+  background: linear-gradient(180deg, #fffefe, #fff3f3);
+}
+
+.compact-card {
+  padding: 0.95rem 1rem;
+}
+
+.portal-table-wrap {
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid rgba(17, 17, 17, 0.06);
+}
+
+.portal-table {
+  margin-bottom: 0;
+}
+
+.portal-table > :not(caption) > * > * {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  vertical-align: middle;
+}
+
+.portal-table thead th {
+  background: #fff5f5;
+  color: var(--portal-red-dark);
+  font-weight: 700;
+  border-bottom-width: 1px;
+}
+
+.portal-accordion .accordion-item {
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid var(--portal-border);
+}
+
+.portal-accordion .accordion-button:not(.collapsed) {
+  background: #fff3f4;
+  color: var(--portal-red-dark);
+  box-shadow: none;
+}
+
+.assistant-response {
+  background: #fff;
+}
+
+.architecture-panel pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.78rem;
+  color: #411012;
+}
+
+.text-brand-red {
+  color: var(--portal-red);
+}
+
+.footer {
+  background: #111111;
+  padding: 1.5rem 0;
+}
+
+.footer-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.footer-brand {
+  color: #fff;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+@media (min-width: 768px) {
+  .footer-grid {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
