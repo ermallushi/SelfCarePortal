@@ -2,10 +2,9 @@
     ViewData["Title"] = "Implementation Notes";
 }
 
-<section class="card shadow-sm border-0">
-    <div class="card-body">
-        <h1 class="h3 mb-3">Implementation notes</h1>
-        <p>This MVC implementation wires customer OTP login, CRM profile lookup, BRM token retrieval, BRM dashboard line discovery, and CRM service-instance enrichment behind the portal dashboard.</p>
-        <p class="mb-0">CAM access is described through the configured Active Directory domain and auto-provisioning policy, while customer line and account data is now loaded on demand after OTP verification.</p>
-    </div>
+<section class="portal-card">
+    <div class="section-eyebrow">Implementation notes</div>
+    <h1 class="h2 mb-3">Configured customer journey</h1>
+    <p>This MVC implementation now follows the real customer flow: send OTP through the SMS API, verify the customer session, load the CRM customer profile, retrieve the BRM authorization token, query the BRM dashboard inventory, and resolve each service instance back through CRM to show the line MSISDN values.</p>
+    <p class="mb-0">The AD domain for CAM access is configured as <strong>amc.al</strong>. Sensitive credentials such as access keys and passwords are intentionally left external to source control and should be supplied through secure configuration providers.</p>
 </section>

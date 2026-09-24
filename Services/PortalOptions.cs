@@ -26,10 +26,12 @@ public class BrmGatewayOptions
     public string AuthTokenUrl { get; init; } = string.Empty;
     public string DashboardUrl { get; init; } = string.Empty;
     public string Source { get; init; } = string.Empty;
-    public string ReferenceId { get; init; } = "123456";
+    public string AuthReferenceId { get; init; } = "123456";
+    public string DashboardReferenceId { get; init; } = "1234";
     public string Username { get; init; } = string.Empty;
     public string Password { get; init; } = string.Empty;
-    public string IpAddress { get; init; } = "::";
+    public string AuthIpAddress { get; init; } = "::";
+    public string DashboardIpAddress { get; init; } = "10.122.25.93";
     public int NumberOfDisplaySi { get; init; } = 50;
     public string FromDate { get; init; } = "2020-05-01 00:00:00";
     public string ToDate { get; init; } = "2026-12-31 00:00:00";

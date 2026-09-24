@@ -8,33 +8,52 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
-    <header class="portal-header border-bottom">
-        <nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="top-strip">
+        <div class="container d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <span>ONE Business Portal</span>
+            <span>Enterprise self-care for mobile, fibre and TV services</span>
+        </div>
+    </div>
+
+    <header class="portal-header">
+        <nav class="navbar navbar-expand-lg navbar-dark py-3">
             <div class="container">
-                <a class="navbar-brand fw-semibold" asp-area="" asp-controller="Home" asp-action="Index">ONE Business Portal</a>
+                <a class="navbar-brand fw-semibold" asp-area="" asp-controller="Home" asp-action="Index">
+                    <span class="brand-mark">ONE</span>
+                    <span class="brand-copy">Business</span>
+                </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#portalNav" aria-controls="portalNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="portalNav">
-                    <ul class="navbar-nav ms-auto gap-lg-2">
+                    <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-3">
                         <li class="nav-item"><a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Dashboard</a></li>
                         <li class="nav-item"><a class="nav-link" asp-area="" asp-controller="Home" asp-action="Privacy">Implementation Notes</a></li>
+                        <li class="nav-item"><span class="nav-chip">Trusted business access</span></li>
                     </ul>
                 </div>
             </div>
         </nav>
     </header>
 
-    <div class="container py-4">
-        <main role="main">
-            @RenderBody()
-        </main>
+    <div class="portal-shell">
+        <div class="container py-4 py-lg-5">
+            <main role="main">
+                @RenderBody()
+            </main>
+        </div>
     </div>
 
-    <footer class="footer border-top py-3 mt-4">
-        <div class="container d-flex flex-column flex-md-row justify-content-between gap-2 small text-muted">
-            <span>&copy; 2026 - ONE Business Portal</span>
-            <span>Enterprise self-care for mobile, fiber and TV customers</span>
+    <footer class="footer mt-4">
+        <div class="container footer-grid">
+            <div>
+                <div class="footer-brand">ONE Business Portal</div>
+                <div class="small text-white-50">Enterprise access, CRM-backed line visibility, and managed customer self-care.</div>
+            </div>
+            <div class="small text-white-50 text-md-end">
+                <div>Active Directory domain: amc.al</div>
+                <div>&copy; 2026 ONE Albania inspired portal experience</div>
+            </div>
         </div>
     </footer>
 

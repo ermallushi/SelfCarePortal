@@ -379,9 +379,9 @@ public class PortalDataService : IPortalDataService
 
         var payload = new
         {
-            ipAddress = string.IsNullOrWhiteSpace(_brmGatewayOptions.IpAddress) ? "::" : _brmGatewayOptions.IpAddress,
+            ipAddress = string.IsNullOrWhiteSpace(_brmGatewayOptions.AuthIpAddress) ? "::" : _brmGatewayOptions.AuthIpAddress,
             source = _brmGatewayOptions.Source,
-            referenceId = string.IsNullOrWhiteSpace(_brmGatewayOptions.ReferenceId) ? "123456" : _brmGatewayOptions.ReferenceId,
+            referenceId = string.IsNullOrWhiteSpace(_brmGatewayOptions.AuthReferenceId) ? "123456" : _brmGatewayOptions.AuthReferenceId,
             username = _brmGatewayOptions.Username,
             password = _brmGatewayOptions.Password
         };
@@ -408,9 +408,9 @@ public class PortalDataService : IPortalDataService
 
         var payload = new
         {
-            ipAddress = string.IsNullOrWhiteSpace(_brmGatewayOptions.IpAddress) ? "::" : _brmGatewayOptions.IpAddress,
+            ipAddress = string.IsNullOrWhiteSpace(_brmGatewayOptions.DashboardIpAddress) ? "10.122.25.93" : _brmGatewayOptions.DashboardIpAddress,
             source = _brmGatewayOptions.Source,
-            referenceId = string.IsNullOrWhiteSpace(_brmGatewayOptions.ReferenceId) ? "1234" : _brmGatewayOptions.ReferenceId,
+            referenceId = string.IsNullOrWhiteSpace(_brmGatewayOptions.DashboardReferenceId) ? "1234" : _brmGatewayOptions.DashboardReferenceId,
             customerAccountNumber,
             numberOfDispaySI = _brmGatewayOptions.NumberOfDisplaySi,
             fromDate = _brmGatewayOptions.FromDate,

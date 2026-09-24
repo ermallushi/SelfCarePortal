@@ -3,66 +3,90 @@
     ViewData["Title"] = "ONE Business Portal";
 }
 
-<section class="hero-card mb-4">
-    <div class="d-lg-flex justify-content-between align-items-start gap-4">
-        <div>
-            <span class="text-uppercase portal-kicker">Unified enterprise self-care</span>
-            <h1 class="display-5 fw-bold mb-3">ONE Business Portal</h1>
-            <p class="lead mb-4">A .NET Core MVC front door for business customers to authenticate with mobile OTP, while CAM users are governed by Active Directory access in the <strong>@Model.AccessSummary.ActiveDirectoryDomain</strong> domain.</p>
-            <div class="d-flex flex-wrap gap-2">
-                <span class="badge bg-primary-subtle text-primary-emphasis">Customer SMS OTP</span>
-                <span class="badge bg-info-subtle text-info-emphasis">CAM AD domain: @Model.AccessSummary.ActiveDirectoryDomain</span>
-                <span class="badge bg-success-subtle text-success-emphasis">Auto provisioning: @(Model.AccessSummary.AutoProvisionUsers ? "enabled" : "disabled")</span>
+<section class="hero-card mb-4 mb-lg-5">
+    <div class="row g-4 align-items-center">
+        <div class="col-xl-7">
+            <span class="portal-kicker">Connected business journeys</span>
+            <h1 class="display-4 fw-bold mb-3 text-white">One digital workspace for your business lines, invoices and support.</h1>
+            <p class="lead hero-copy mb-4">A red-and-white enterprise experience inspired by ONE Albania, with customer OTP access, CAM Active Directory governance, and live CRM/BRM-backed mobile inventory orchestration.</p>
+            <div class="hero-pills d-flex flex-wrap gap-2 mb-4">
+                <span class="hero-pill">SMS OTP login</span>
+                <span class="hero-pill">CAM domain: @Model.AccessSummary.ActiveDirectoryDomain</span>
+                <span class="hero-pill">Auto provisioning: @(Model.AccessSummary.AutoProvisionUsers ? "enabled" : "disabled")</span>
+            </div>
+            <div class="hero-stat-grid">
+                <div class="hero-stat-card">
+                    <span>Customer access</span>
+                    <strong>OTP over SMS API</strong>
+                </div>
+                <div class="hero-stat-card">
+                    <span>CRM source</span>
+                    <strong>get_customer_profile</strong>
+                </div>
+                <div class="hero-stat-card">
+                    <span>Line inventory</span>
+                    <strong>BRM + CRM enrichment</strong>
+                </div>
             </div>
         </div>
-        <div class="auth-summary card shadow-sm border-0 mt-4 mt-lg-0">
-            <div class="card-body">
-                <h2 class="h5">Authentication & access</h2>
-                <p class="small text-muted mb-2"><strong>Customers:</strong> @Model.AccessSummary.CustomerLoginMethod</p>
-                <p class="small text-muted mb-3"><strong>CAM / staff:</strong> @Model.AccessSummary.StaffLoginMethod</p>
-                <div class="d-flex flex-wrap gap-2 mb-3">
-                    @foreach (var role in Model.AccessSummary.Roles)
-                    {
-                        <span class="badge rounded-pill text-bg-light border">@role</span>
-                    }
-                </div>
-
-                @if (Model.Authentication.IsCustomerAuthenticated)
-                {
-                    <div class="detail-card compact-card mb-3">
-                        <span>Authenticated customer</span>
-                        <strong>@Model.Authentication.AuthenticatedMobileNumber</strong>
-                    </div>
-                    <form asp-action="Logout" method="post">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-outline-danger btn-sm">Log out</button>
-                    </form>
-                }
-                else
-                {
-                    <form asp-action="SendOtp" method="post" class="mb-3">
-                        @Html.AntiForgeryToken()
-                        <label class="form-label" for="MobileNumber">Customer mobile number</label>
-                        <div class="input-group">
-                            <input class="form-control" id="MobileNumber" name="MobileNumber" value="@Model.Authentication.PendingOtpMobileNumber" placeholder="355672017758" />
-                            <button type="submit" class="btn btn-primary">Send OTP</button>
+        <div class="col-xl-5">
+            <div class="auth-panel card border-0 shadow-lg">
+                <div class="card-body p-4 p-lg-5">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div>
+                            <div class="section-eyebrow">Secure access</div>
+                            <h2 class="h3 mb-1">Authentication & access</h2>
                         </div>
-                    </form>
+                        <span class="status-dot @(Model.Authentication.IsCustomerAuthenticated ? "is-live" : "")"></span>
+                    </div>
+                    <p class="small text-muted mb-2"><strong>Customers:</strong> @Model.AccessSummary.CustomerLoginMethod</p>
+                    <p class="small text-muted mb-4"><strong>CAM / staff:</strong> @Model.AccessSummary.StaffLoginMethod</p>
+                    <div class="d-flex flex-wrap gap-2 mb-4">
+                        @foreach (var role in Model.AccessSummary.Roles)
+                        {
+                            <span class="badge role-badge">@role</span>
+                        }
+                    </div>
 
-                    @if (Model.Authentication.HasPendingOtpChallenge && !string.IsNullOrWhiteSpace(Model.Authentication.PendingOtpMobileNumber))
+                    @if (Model.Authentication.IsCustomerAuthenticated)
                     {
-                        <form asp-action="VerifyOtp" method="post">
+                        <div class="customer-session-card mb-4">
+                            <span>Authenticated customer</span>
+                            <strong>@Model.Authentication.AuthenticatedMobileNumber</strong>
+                            <p class="mb-0 small text-muted">CRM and BRM account data will be loaded for this mobile number.</p>
+                        </div>
+                        <form asp-action="Logout" method="post">
                             @Html.AntiForgeryToken()
-                            <input type="hidden" name="MobileNumber" value="@Model.Authentication.PendingOtpMobileNumber" />
-                            <label class="form-label" for="OtpCode">OTP code</label>
-                            <div class="input-group">
-                                <input class="form-control" id="OtpCode" name="OtpCode" placeholder="Enter the code received by SMS" />
-                                <button type="submit" class="btn btn-outline-primary">Verify</button>
-                            </div>
-                            <div class="form-text">Verifies the OTP sent to @Model.Authentication.PendingOtpMobileNumber and starts the CRM-backed customer session.</div>
+                            <button type="submit" class="btn btn-portal-outline w-100">Log out</button>
                         </form>
                     }
-                }
+                    else
+                    {
+                        <form asp-action="SendOtp" method="post" class="mb-3">
+                            @Html.AntiForgeryToken()
+                            <label class="form-label" for="MobileNumber">Customer mobile number</label>
+                            <div class="input-group portal-input-group">
+                                <input class="form-control" id="MobileNumber" name="MobileNumber" value="@Model.Authentication.PendingOtpMobileNumber" placeholder="355672017758" />
+                                <button type="submit" class="btn btn-portal-primary">Send OTP</button>
+                            </div>
+                            <div class="form-text">SMS API originator: Emila</div>
+                        </form>
+
+                        @if (Model.Authentication.HasPendingOtpChallenge && !string.IsNullOrWhiteSpace(Model.Authentication.PendingOtpMobileNumber))
+                        {
+                            <form asp-action="VerifyOtp" method="post" class="otp-panel">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="MobileNumber" value="@Model.Authentication.PendingOtpMobileNumber" />
+                                <label class="form-label" for="OtpCode">OTP code</label>
+                                <div class="input-group portal-input-group">
+                                    <input class="form-control" id="OtpCode" name="OtpCode" placeholder="Enter the code received by SMS" />
+                                    <button type="submit" class="btn btn-portal-outline">Verify</button>
+                                </div>
+                                <div class="form-text">Verify the code sent to @Model.Authentication.PendingOtpMobileNumber and open the CRM-backed customer workspace.</div>
+                            </form>
+                        }
+                    }
+                </div>
             </div>
         </div>
     </div>
@@ -70,7 +94,7 @@
 
 @if (!string.IsNullOrWhiteSpace(Model.BannerMessage))
 {
-    <div class="alert alert-@Model.BannerTone alert-dismissible fade show" role="alert">
+    <div class="alert alert-@Model.BannerTone alert-dismissible fade show portal-alert" role="alert">
         @Model.BannerMessage
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>

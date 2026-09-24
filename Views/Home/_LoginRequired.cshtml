@@ -1,13 +1,43 @@
 @model PortalViewModel
 
-<section class="card shadow-sm border-0 mb-4">
-    <div class="card-body">
-        <h2 class="h4 mb-3">Customer access required</h2>
-        <p class="mb-2">Request an OTP for the customer mobile number, verify the code, and the portal will load:</p>
-        <ul class="mb-0">
-            <li>the CRM customer profile from the configured <code>get_customer_profile</code> operation</li>
-            <li>the BRM token and dashboard service-instance list for the customer account</li>
-            <li>the CRM <code>ServiceInstanceAccount</code> records used to resolve line MSISDN values</li>
-        </ul>
+<section class="brand-panel mb-4">
+    <div class="row g-4 align-items-stretch">
+        <div class="col-lg-7">
+            <div class="portal-card h-100">
+                <div class="section-eyebrow">Customer onboarding flow</div>
+                <h2 class="h3 mb-3">What happens after the customer enters a mobile number?</h2>
+                <div class="timeline-list">
+                    <div class="timeline-item">
+                        <strong>1. SMS OTP request</strong>
+                        <p class="mb-0">The portal sends the OTP request to <code>http://10.89.4.49:9933/api/sendsms/sendsms</code> with originator <code>Emila</code>.</p>
+                    </div>
+                    <div class="timeline-item">
+                        <strong>2. CRM profile lookup</strong>
+                        <p class="mb-0">After OTP verification, the customer profile is loaded from <code>http://crm.talprd.com:9971/webservice.php</code> using <code>get_customer_profile</code>.</p>
+                    </div>
+                    <div class="timeline-item">
+                        <strong>3. BRM inventory discovery</strong>
+                        <p class="mb-0">The customer account number is used for BRM token retrieval and dashboard service-instance loading.</p>
+                    </div>
+                    <div class="timeline-item">
+                        <strong>4. CRM line enrichment</strong>
+                        <p class="mb-0">Each BRM service instance is resolved in CRM so the real <code>serviceinstance_msisdn</code> line numbers can be displayed.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="portal-card h-100 accent-card">
+                <div class="section-eyebrow">Configured real endpoints</div>
+                <h2 class="h4 mb-3">Production-aligned integration targets</h2>
+                <ul class="integration-list mb-0">
+                    <li><span>Active Directory</span><strong>amc.al</strong></li>
+                    <li><span>SMS OTP API</span><strong>10.89.4.49:9933</strong></li>
+                    <li><span>CRM profile API</span><strong>crm.talprd.com:9971</strong></li>
+                    <li><span>BRM auth + dashboard</span><strong>10.89.14.82:30010</strong></li>
+                </ul>
+                <p class="small text-white-50 mt-3 mb-0">Sensitive credentials remain externalised and should be provided through environment variables or user secrets instead of being committed into source control.</p>
+            </div>
+        </div>
     </div>
 </section>
