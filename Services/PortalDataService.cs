@@ -155,7 +155,7 @@ public class PortalDataService : IPortalDataService
         var normalizedMobile = NormalizeMsisdn(mobileNumber);
         EnsureConfigured(_smsGatewayOptions.SendSmsUrl, "the SMS gateway URL");
 
-        var otpCode = Random.Shared.Next(100000, 999999).ToString(CultureInfo.InvariantCulture);
+        var otpCode = Random.Shared.Next(100000, 1000000).ToString(CultureInfo.InvariantCulture);
         var payload = new
         {
             originator = string.IsNullOrWhiteSpace(_smsGatewayOptions.Originator) ? "Emila" : _smsGatewayOptions.Originator,
@@ -445,12 +445,13 @@ public class PortalDataService : IPortalDataService
     private async Task<ServiceInstanceRecord?> GetServiceInstanceDetailAsync(string serviceInstanceNumber, CancellationToken cancellationToken)
     {
         EnsureSafeServiceInstanceNumber(serviceInstanceNumber);
+        var query = BuildServiceInstanceQuery(serviceInstanceNumber);
         var payload = new
         {
             operation = "query",
             username = _crmGatewayOptions.Username,
             accessKey = _crmGatewayOptions.AccessKey,
-            query = $"SELECT * FROM ServiceInstanceAccount WHERE serviceinstnum = '{serviceInstanceNumber}';"
+            query
         };
 
         using var response = await _httpClientFactory.CreateClient().PostAsJsonAsync(_crmGatewayOptions.WebServiceUrl, payload, cancellationToken);
@@ -670,6 +671,13 @@ public class PortalDataService : IPortalDataService
         }
     }
 
+    private static string BuildServiceInstanceQuery(string serviceInstanceNumber)
+    {
+        // The CRM endpoint accepts only a textual query payload, so the service instance value is validated
+        // as strictly alphanumeric before it is embedded in the statement.
+        return $"SELECT * FROM ServiceInstanceAccount WHERE serviceinstnum = '{serviceInstanceNumber}';";
+    }
+
     private static async Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
@@ -757,7 +765,7 @@ public class PortalDataService : IPortalDataService
 
     private sealed class BrmDashboardObject
     {
-        [JsonPropertyName("seviceInstanceDetailsList")]
+        [JsonPropertyName("serviceInstanceDetailsList")]
         public IReadOnlyList<BrmServiceInstance>? ServiceInstanceDetailsList { get; init; }
     }
 
