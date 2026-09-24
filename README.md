@@ -11,17 +11,20 @@ dotnet run
 
 ## Configure integrations
 
-Set the integration values through configuration providers such as environment variables or user secrets before exercising the OTP and CRM/BRM flows.
+The repository now commits the requested non-secret endpoint defaults for the OTP, CRM and BRM integrations in `appsettings.json`.
 
-Required sections:
+You still need to provide the secret values through configuration providers such as environment variables or user secrets before exercising the full flow:
+- `SmsGateway:ServiceId`
+- `CrmGateway:AccessKey`
+- `BrmGateway:Password`
+
+Other committed sections include:
 - `ActiveDirectory:Domain`
 - `ActiveDirectory:AutoProvisionUsers`
 - `SmsGateway:SendSmsUrl`
 - `SmsGateway:Originator`
-- `SmsGateway:ServiceId`
 - `CrmGateway:WebServiceUrl`
 - `CrmGateway:Username`
-- `CrmGateway:AccessKey`
 - `CrmGateway:Source`
 - `BrmGateway:AuthTokenUrl`
 - `BrmGateway:DashboardUrl`
@@ -29,13 +32,10 @@ Required sections:
 - `BrmGateway:AuthReferenceId`
 - `BrmGateway:DashboardReferenceId`
 - `BrmGateway:Username`
-- `BrmGateway:Password`
 - `BrmGateway:AuthIpAddress`
 - `BrmGateway:DashboardIpAddress`
 - `BrmGateway:NumberOfDisplaySi`
 - `BrmGateway:FromDate`
 - `BrmGateway:ToDate`
-
-Sensitive hosts, internal IP addresses, usernames, reference identifiers, access keys, passwords, service identifiers and similar environment-specific values should stay out of source control and be supplied through secure configuration.
 
 After configuration, open the local URL shown by ASP.NET Core, request an OTP for a customer mobile number, verify the code, and the portal will load the CRM profile plus the BRM/CRM-derived line inventory.
