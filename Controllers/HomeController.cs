@@ -41,7 +41,7 @@ public class HomeController : Controller
         }
         catch (InvalidOperationException exception)
         {
-            _logger.LogWarning(exception, "OTP request failed for mobile number {MobileNumber}", mobileNumber);
+            _logger.LogWarning(exception, "OTP request failed.");
             return View("Index", await BuildPortalViewAsync(exception.Message, "danger", pendingOtpMobileNumber: mobileNumber, hasPendingOtpChallenge: false, cancellationToken: cancellationToken));
         }
     }
@@ -64,7 +64,7 @@ public class HomeController : Controller
         }
         catch (InvalidOperationException exception)
         {
-            _logger.LogWarning(exception, "OTP verification failed for mobile number {MobileNumber}", mobileNumber);
+            _logger.LogWarning(exception, "OTP verification failed.");
             return View("Index", await BuildPortalViewAsync(exception.Message, "danger", pendingOtpMobileNumber: mobileNumber, hasPendingOtpChallenge: true, cancellationToken: cancellationToken));
         }
     }

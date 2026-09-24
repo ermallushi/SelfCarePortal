@@ -10,6 +10,7 @@ namespace SelfCarePortal.Services;
 
 public class PortalDataService : IPortalDataService
 {
+    private const int MaxOtpAttempts = 5;
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web)
     {
         PropertyNameCaseInsensitive = true
@@ -141,7 +142,7 @@ public class PortalDataService : IPortalDataService
         }
         catch (InvalidOperationException exception)
         {
-            _logger.LogWarning(exception, "Unable to load portal data for mobile number {MobileNumber}", customerSession.MobileNumber);
+            _logger.LogWarning(exception, "Unable to load portal data for the authenticated customer session.");
             var message = string.IsNullOrWhiteSpace(bannerMessage)
                 ? exception.Message
                 : $"{bannerMessage} {exception.Message}";
@@ -180,7 +181,7 @@ public class PortalDataService : IPortalDataService
             throw new InvalidOperationException(result?.ResultMessage ?? "The OTP gateway rejected the request.");
         }
 
-        _pendingOtps[normalizedMobile] = new PendingOtpState(otpCode, DateTimeOffset.UtcNow.AddMinutes(5));
+        _pendingOtps[normalizedMobile] = new PendingOtpState(otpCode, DateTimeOffset.UtcNow.AddMinutes(5), 0);
         return $"OTP sent to {normalizedMobile}. Enter the verification code to continue.";
     }
 
@@ -203,6 +204,14 @@ public class PortalDataService : IPortalDataService
 
         if (!string.Equals(pendingOtp.Code, normalizedOtp, StringComparison.Ordinal))
         {
+            var failedAttempts = pendingOtp.FailedAttempts + 1;
+            if (failedAttempts >= MaxOtpAttempts)
+            {
+                _pendingOtps.TryRemove(normalizedMobile, out _);
+                throw new InvalidOperationException("Too many invalid OTP attempts. Please request a new code.");
+            }
+
+            _pendingOtps[normalizedMobile] = pendingOtp with { FailedAttempts = failedAttempts };
             throw new InvalidOperationException("The OTP you entered is invalid.");
         }
 
@@ -426,7 +435,7 @@ public class PortalDataService : IPortalDataService
             throw new InvalidOperationException(dashboardResponse?.ResponseMessage ?? "The BRM dashboard lookup did not succeed.");
         }
 
-        return dashboardResponse.ResponseObject?.SeviceInstanceDetailsList?
+        return dashboardResponse.ResponseObject?.ServiceInstanceDetailsList?
             .Where(item => !string.IsNullOrWhiteSpace(item.SiNo))
             .Select(item => item.SiNo!)
             .Distinct(StringComparer.Ordinal)
@@ -435,13 +444,13 @@ public class PortalDataService : IPortalDataService
 
     private async Task<ServiceInstanceRecord?> GetServiceInstanceDetailAsync(string serviceInstanceNumber, CancellationToken cancellationToken)
     {
-        var escapedValue = serviceInstanceNumber.Replace("'", "''", StringComparison.Ordinal);
+        EnsureSafeServiceInstanceNumber(serviceInstanceNumber);
         var payload = new
         {
             operation = "query",
             username = _crmGatewayOptions.Username,
             accessKey = _crmGatewayOptions.AccessKey,
-            query = $"SELECT * FROM ServiceInstanceAccount WHERE serviceinstnum = '{escapedValue}';"
+            query = $"SELECT * FROM ServiceInstanceAccount WHERE serviceinstnum = '{serviceInstanceNumber}';"
         };
 
         using var response = await _httpClientFactory.CreateClient().PostAsJsonAsync(_crmGatewayOptions.WebServiceUrl, payload, cancellationToken);
@@ -544,29 +553,6 @@ public class PortalDataService : IPortalDataService
 
         return "Activation date unavailable";
     }
-
-    private static PortalViewModel CreatePortalShell(CustomerAccessSummary accessSummary, PortalAuthenticationState authentication, string? bannerMessage, string bannerTone) => new()
-    {
-        AccessSummary = accessSummary,
-        Authentication = authentication,
-        Account = CreatePlaceholderAccount(authentication.AuthenticatedMobileNumber),
-        LineMetrics = [
-            CreateMetric("Voice & data", 0, "border-primary"),
-            CreateMetric("Data-only SIM", 0, "border-success"),
-            CreateMetric("IoT SIM", 0, "border-info"),
-            CreateMetric("Active / inactive / pending", "0 / 0 / 0", "border-warning")
-        ],
-        Lines = [],
-        AddOnCatalog = [],
-        Tariffs = [],
-        Invoices = [],
-        Tickets = [],
-        SupportContact = new SupportContact { Name = string.Empty, Phone = string.Empty, Email = string.Empty, WhatsAppLink = "#" },
-        Offers = [],
-        Architecture = new ArchitectureSummary { Layers = [], IntegrationNotes = [] },
-        BannerMessage = bannerMessage,
-        BannerTone = bannerTone
-    };
 
     private static AccountOverview CreatePlaceholderAccount(string? mobileNumber = null) => new()
     {
@@ -676,13 +662,21 @@ public class PortalDataService : IPortalDataService
         }
     }
 
+    private static void EnsureSafeServiceInstanceNumber(string serviceInstanceNumber)
+    {
+        if (string.IsNullOrWhiteSpace(serviceInstanceNumber) || serviceInstanceNumber.Any(character => !char.IsLetterOrDigit(character)))
+        {
+            throw new InvalidOperationException("An invalid service instance number was returned by the upstream system.");
+        }
+    }
+
     private static async Task<T?> DeserializeAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         return await JsonSerializer.DeserializeAsync<T>(stream, SerializerOptions, cancellationToken);
     }
 
-    private sealed record PendingOtpState(string Code, DateTimeOffset ExpiresAtUtc);
+    private sealed record PendingOtpState(string Code, DateTimeOffset ExpiresAtUtc, int FailedAttempts);
 
     private sealed record FeatureState(bool RoamingEnabled, bool InternationalCallsEnabled, bool VolteEnabled);
 
@@ -763,7 +757,8 @@ public class PortalDataService : IPortalDataService
 
     private sealed class BrmDashboardObject
     {
-        public IReadOnlyList<BrmServiceInstance>? SeviceInstanceDetailsList { get; init; }
+        [JsonPropertyName("seviceInstanceDetailsList")]
+        public IReadOnlyList<BrmServiceInstance>? ServiceInstanceDetailsList { get; init; }
     }
 
     private sealed class BrmServiceInstance
