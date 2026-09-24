@@ -117,14 +117,15 @@ public class PortalDataService : IPortalDataService
         _brmGatewayOptions = brmGatewayOptions.Value;
     }
 
-    public async Task<PortalViewModel> GetPortalAsync(PortalCustomerSession? customerSession, string? bannerMessage = null, string bannerTone = "primary", string? assistantQuestion = null, string? assistantResponse = null, string? pendingOtpMobileNumber = null, CancellationToken cancellationToken = default)
+    public async Task<PortalViewModel> GetPortalAsync(PortalCustomerSession? customerSession, string? bannerMessage = null, string bannerTone = "primary", string? assistantQuestion = null, string? assistantResponse = null, string? pendingOtpMobileNumber = null, bool hasPendingOtpChallenge = false, CancellationToken cancellationToken = default)
     {
         var accessSummary = BuildAccessSummary();
         var authentication = new PortalAuthenticationState
         {
             IsCustomerAuthenticated = customerSession is not null,
             AuthenticatedMobileNumber = customerSession?.MobileNumber,
-            PendingOtpMobileNumber = pendingOtpMobileNumber
+            PendingOtpMobileNumber = pendingOtpMobileNumber,
+            HasPendingOtpChallenge = hasPendingOtpChallenge
         };
 
         if (customerSession is null)

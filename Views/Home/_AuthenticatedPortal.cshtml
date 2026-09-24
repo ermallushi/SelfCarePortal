@@ -1,0 +1,377 @@
+@model PortalViewModel
+
+<section class="row g-4 mb-4">
+    <div class="col-xl-7">
+        <div class="card shadow-sm h-100 border-0">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h2 class="h4 mb-1">Account overview</h2>
+                        <p class="text-muted mb-0">CRM-backed corporate metadata for @Model.Account.CompanyName.</p>
+                    </div>
+                    <span class="badge rounded-pill text-bg-dark">@Model.Account.CorporateDiscountPercentage% discount</span>
+                </div>
+                <div class="row row-cols-1 row-cols-md-2 g-3">
+                    <div class="col"><div class="detail-card"><span>Customer code</span><strong>@Model.Account.CustomerCode</strong></div></div>
+                    <div class="col"><div class="detail-card"><span>Tax ID / NIPT</span><strong>@Model.Account.TaxId</strong></div></div>
+                    <div class="col"><div class="detail-card"><span>Contract duration</span><strong>@Model.Account.ContractDuration</strong></div></div>
+                    <div class="col"><div class="detail-card"><span>Contract dates</span><strong>@Model.Account.ContractStartDate.ToString("dd MMM yyyy") - @Model.Account.ContractEndDate.ToString("dd MMM yyyy")</strong></div></div>
+                    <div class="col"><div class="detail-card"><span>Monthly budget</span><strong>ALL @Model.Account.MonthlyBudget.ToString("N0")</strong></div></div>
+                    <div class="col"><div class="detail-card"><span>Roles enabled</span><strong>@string.Join(", ", Model.AccessSummary.Roles)</strong></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-5">
+        <div class="card shadow-sm h-100 border-0">
+            <div class="card-body">
+                <h2 class="h4 mb-3">Line dashboard</h2>
+                <div class="row row-cols-1 row-cols-sm-2 g-3 mb-2">
+                    @foreach (var metric in Model.LineMetrics)
+                    {
+                        <div class="col">
+                            <div class="metric-card @metric.AccentClass">
+                                <span>@metric.Label</span>
+                                <strong>@metric.Value</strong>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <p class="small text-muted mb-0">Service instances are loaded from BRM and enriched through CRM line lookups after customer OTP login.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+            <div>
+                <h2 class="h4 mb-1">Line management & service controls</h2>
+                <p class="text-muted mb-0">The line MSISDN values come from CRM service-instance lookups resolved from the BRM dashboard service inventory.</p>
+            </div>
+            <span class="badge text-bg-light border">API-backed line list</span>
+        </div>
+        @if (Model.Lines.Count == 0)
+        {
+            <div class="alert alert-warning mb-0">No lines were returned for the authenticated customer account.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Line</th>
+                            <th>Owner</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Service instance</th>
+                            <th>Usage</th>
+                            <th>Controls</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var line in Model.Lines)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@line.Number</strong>
+                                <div class="small text-muted">@line.Branch</div>
+                            </td>
+                            <td>@line.Owner</td>
+                            <td>@line.LineType</td>
+                            <td><span class="badge @(line.ServiceStatus == "Active" ? "text-bg-success" : line.ServiceStatus == "Pending" ? "text-bg-warning" : "text-bg-secondary")">@line.ServiceStatus</span></td>
+                            <td>@line.Package</td>
+                            <td>@line.Usage</td>
+                            <td>
+                                <div class="d-flex flex-column gap-2">
+                                    @foreach (var feature in new[]
+                                    {
+                                        (ManagedFeature.Roaming, "Roaming", line.RoamingEnabled),
+                                        (ManagedFeature.InternationalCalls, "International Calls", line.InternationalCallsEnabled),
+                                        (ManagedFeature.Volte, "VoLTE", line.VolteEnabled)
+                                    })
+                                    {
+                                        <form asp-action="ToggleFeature" method="post" class="d-flex gap-2 align-items-center">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="LineNumber" value="@line.Number" />
+                                            <input type="hidden" name="Feature" value="@feature.Item1" />
+                                            <span class="small @(feature.Item3 ? "text-success" : "text-muted")">@feature.Item2</span>
+                                            <button type="submit" class="btn btn-sm @(feature.Item3 ? "btn-outline-success" : "btn-outline-secondary")">@(feature.Item3 ? "Disable" : "Enable")</button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</section>
+
+<section class="row g-4 mb-4">
+    <div class="col-xl-6">
+        <div class="card shadow-sm h-100 border-0">
+            <div class="card-body">
+                <h2 class="h4 mb-3">Add-on marketplace</h2>
+                <p class="text-muted">Purchase one-off bundles per billing cycle for roaming, extra data and international minutes.</p>
+                <form asp-action="PurchaseAddOn" method="post" class="row g-3">
+                    @Html.AntiForgeryToken()
+                    <div class="col-md-6">
+                        <label class="form-label" for="lineNumber">Line</label>
+                        <select class="form-select" id="lineNumber" name="LineNumber">
+                            @foreach (var line in Model.Lines)
+                            {
+                                <option value="@line.Number">@line.Number - @line.Owner</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="addOnCode">Add-on</label>
+                        <select class="form-select" id="addOnCode" name="AddOnCode">
+                            @foreach (var addOn in Model.AddOnCatalog)
+                            {
+                                <option value="@addOn.Code">@addOn.Name (@addOn.Price)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary" @(Model.Lines.Count == 0 ? "disabled" : null)>Purchase add-on</button>
+                    </div>
+                </form>
+                <div class="row row-cols-1 g-3 mt-1">
+                    @foreach (var addOn in Model.AddOnCatalog)
+                    {
+                        <div class="col">
+                            <div class="detail-card compact-card">
+                                <div class="d-flex justify-content-between gap-3">
+                                    <div>
+                                        <strong>@addOn.Name</strong>
+                                        <div class="small text-muted">@addOn.Description</div>
+                                    </div>
+                                    <span class="text-nowrap fw-semibold">@addOn.Price</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="card shadow-sm h-100 border-0">
+            <div class="card-body">
+                <h2 class="h4 mb-3">Tariffs & packages</h2>
+                <p class="text-muted">Reference package details and tariff structures before ordering services.</p>
+                <div class="accordion" id="tariffAccordion">
+                    @for (var i = 0; i < Model.Tariffs.Count; i++)
+                    {
+                        var tariff = Model.Tariffs[i];
+                        <div class="accordion-item">
+                            <h3 class="accordion-header">
+                                <button class="accordion-button @(i > 0 ? "collapsed" : null)" type="button" data-bs-toggle="collapse" data-bs-target="#tariff-@i" aria-expanded="@(i == 0 ? "true" : "false")">
+                                    @tariff.Name
+                                </button>
+                            </h3>
+                            <div id="tariff-@i" class="accordion-collapse collapse @(i == 0 ? "show" : null)" data-bs-parent="#tariffAccordion">
+                                <div class="accordion-body">
+                                    <p class="mb-2">@tariff.Description</p>
+                                    <div class="small text-muted">Billing cycle: @tariff.BillingCycle · Eligibility: @tariff.Eligibility</div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+            <div>
+                <h2 class="h4 mb-1">Billing, invoices & payments</h2>
+                <p class="text-muted mb-0">Review invoice history, open statement details, download PDF statements and settle due balances.</p>
+            </div>
+            <span class="badge text-bg-light border">Direct digital payments</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Invoice ID</th>
+                        <th>Billing period</th>
+                        <th>Total amount</th>
+                        <th>Status</th>
+                        <th>Due date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var invoice in Model.Invoices)
+                {
+                    <tr>
+                        <td>@invoice.InvoiceId</td>
+                        <td>@invoice.BillingPeriod</td>
+                        <td>ALL @invoice.TotalAmount.ToString("N0")</td>
+                        <td><span class="badge @(invoice.Status == "Paid" ? "text-bg-success" : "text-bg-warning")">@invoice.Status</span></td>
+                        <td>@invoice.DueDate.ToString("dd MMM yyyy")</td>
+                        <td>
+                            <div class="d-flex flex-wrap gap-2">
+                                <a asp-action="InvoiceDetails" asp-route-id="@invoice.InvoiceId" class="btn btn-sm btn-outline-primary">View</a>
+                                <a asp-action="InvoicePdf" asp-route-id="@invoice.InvoiceId" class="btn btn-sm btn-outline-dark">Download PDF</a>
+                                @if (invoice.Status == "Due")
+                                {
+                                    <form asp-action="PayInvoice" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="InvoiceId" value="@invoice.InvoiceId" />
+                                        <button type="submit" class="btn btn-sm btn-primary">Pay Now</button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<section class="row g-4 mb-4">
+    <div class="col-xl-7">
+        <div class="card shadow-sm h-100 border-0">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+                    <div>
+                        <h2 class="h4 mb-1">Tickets, complaints & support</h2>
+                        <p class="text-muted mb-0">Track open service and billing cases with visibility into subject, priority, status and opened date.</p>
+                    </div>
+                    <a href="@Model.SupportContact.WhatsAppLink" class="btn btn-success btn-sm" target="_blank" rel="noreferrer">Message CAM</a>
+                </div>
+                <div class="table-responsive mb-4">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Ticket ID</th>
+                                <th>Subject</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                                <th>Date opened</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var ticket in Model.Tickets)
+                        {
+                            <tr>
+                                <td>@ticket.TicketId</td>
+                                <td>@ticket.Subject</td>
+                                <td>@ticket.Priority</td>
+                                <td>@ticket.Status</td>
+                                <td>@ticket.OpenedOn.ToString("dd MMM yyyy")</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="support-contact">
+                    <h3 class="h5">Dedicated account support contact</h3>
+                    <div class="d-flex flex-wrap gap-3 small">
+                        <span><strong>CAM:</strong> @Model.SupportContact.Name</span>
+                        <span><strong>Phone:</strong> @Model.SupportContact.Phone</span>
+                        <span><strong>Email:</strong> @Model.SupportContact.Email</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-5">
+        <div class="card shadow-sm h-100 border-0">
+            <div class="card-body">
+                <h2 class="h4 mb-3">24/7 AI assistant</h2>
+                <p class="text-muted">Ask about service activation, due invoices or support tickets for guided next steps.</p>
+                <form asp-action="AskAssistant" method="post" class="mb-3">
+                    @Html.AntiForgeryToken()
+                    <label class="form-label" for="Question">Ask the assistant</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="Question" name="Question" value="@Model.AssistantQuestion" placeholder="How do I activate roaming for an executive line?" />
+                        <button type="submit" class="btn btn-primary">Ask</button>
+                    </div>
+                </form>
+                <div class="assistant-response">
+                    <strong>Response</strong>
+                    <p class="mb-0">@(Model.AssistantResponse ?? "The assistant is ready to help with activation, invoice and support journeys.")</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="row g-4 mb-4">
+    <div class="col-xl-6">
+        <div class="card shadow-sm h-100 border-0">
+            <div class="card-body">
+                <h2 class="h4 mb-3">Personalized offer engine</h2>
+                <p class="text-muted">Contextual CMS-driven campaigns tailored by segment, profile rules and recent usage patterns.</p>
+                <div class="row row-cols-1 g-3">
+                    @foreach (var offer in Model.Offers)
+                    {
+                        <div class="col">
+                            <div class="detail-card compact-card">
+                                <strong>@offer.Title</strong>
+                                <p class="mb-2 small text-muted">@offer.Summary</p>
+                                <div class="small"><strong>Segment:</strong> @offer.Segment</div>
+                                <div class="small"><strong>Trigger:</strong> @offer.Trigger</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="card shadow-sm h-100 border-0">
+            <div class="card-body">
+                <h2 class="h4 mb-3">Architecture & integration</h2>
+                <ol class="ps-3 mb-3">
+                    @foreach (var layer in Model.Architecture.Layers)
+                    {
+                        <li class="mb-2">@layer</li>
+                    }
+                </ol>
+                <div class="detail-card compact-card architecture-panel">
+                    <pre class="mb-0">+-------------------------------------------------------------+
+|                      Business Portal UX                     |
+|            (Responsive Web Application Frontend)            |
++------------------------------+------------------------------+
+                               |
++------------------------------v------------------------------+
+|                   API Gateway & Auth Layer                  |
+|   - Customers: OTP via SMS API                              |
+|   - CAM / Staff: Active Directory (@Model.AccessSummary.ActiveDirectoryDomain)           |
++---------------+------------------------------+--------------+
+                |                              |
++---------------v--------------+  +------------v--------------+
+| CRM + BRM customer services  |  |        CMS Content        |
+|  Profile, token & SI lookup  |  |  (Campaigns & Messages)   |
++---------------+--------------+  +---------------------------+
+                |
++---------------v---------------------------------------------+
+|                          BSS Stack                          |
+|         (CRM, Billing, Orders, Payments, Services)          |
++-------------------------------------------------------------+</pre>
+                </div>
+                <ul class="small text-muted mt-3 mb-0 ps-3">
+                    @foreach (var note in Model.Architecture.IntegrationNotes)
+                    {
+                        <li class="mb-2">@note</li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>

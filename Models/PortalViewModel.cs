@@ -27,6 +27,7 @@ public class PortalAuthenticationState
     public bool IsCustomerAuthenticated { get; init; }
     public string? AuthenticatedMobileNumber { get; init; }
     public string? PendingOtpMobileNumber { get; init; }
+    public bool HasPendingOtpChallenge { get; init; }
 }
 
 public class CustomerAccessSummary

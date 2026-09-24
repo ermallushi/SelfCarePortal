@@ -31,18 +31,18 @@ public class HomeController : Controller
         var mobileNumber = NormalizeMsisdn(request.MobileNumber);
         if (string.IsNullOrWhiteSpace(mobileNumber))
         {
-            return View("Index", await BuildPortalViewAsync("Enter a valid mobile number to request an OTP.", "danger", pendingOtpMobileNumber: request.MobileNumber, cancellationToken: cancellationToken));
+            return View("Index", await BuildPortalViewAsync("Enter a valid mobile number to request an OTP.", "danger", pendingOtpMobileNumber: request.MobileNumber, hasPendingOtpChallenge: false, cancellationToken: cancellationToken));
         }
 
         try
         {
             var message = await _portalDataService.SendOtpAsync(mobileNumber, cancellationToken);
-            return View("Index", await BuildPortalViewAsync(message, "info", pendingOtpMobileNumber: mobileNumber, cancellationToken: cancellationToken));
+            return View("Index", await BuildPortalViewAsync(message, "info", pendingOtpMobileNumber: mobileNumber, hasPendingOtpChallenge: true, cancellationToken: cancellationToken));
         }
         catch (InvalidOperationException exception)
         {
             _logger.LogWarning(exception, "OTP request failed for mobile number {MobileNumber}", mobileNumber);
-            return View("Index", await BuildPortalViewAsync(exception.Message, "danger", pendingOtpMobileNumber: mobileNumber, cancellationToken: cancellationToken));
+            return View("Index", await BuildPortalViewAsync(exception.Message, "danger", pendingOtpMobileNumber: mobileNumber, hasPendingOtpChallenge: false, cancellationToken: cancellationToken));
         }
     }
 
@@ -53,7 +53,7 @@ public class HomeController : Controller
         var mobileNumber = NormalizeMsisdn(request.MobileNumber);
         if (string.IsNullOrWhiteSpace(mobileNumber) || string.IsNullOrWhiteSpace(request.OtpCode))
         {
-            return View("Index", await BuildPortalViewAsync("Enter both the mobile number and the OTP code.", "danger", pendingOtpMobileNumber: mobileNumber, cancellationToken: cancellationToken));
+            return View("Index", await BuildPortalViewAsync("Enter both the mobile number and the OTP code.", "danger", pendingOtpMobileNumber: mobileNumber, hasPendingOtpChallenge: true, cancellationToken: cancellationToken));
         }
 
         try
@@ -65,7 +65,7 @@ public class HomeController : Controller
         catch (InvalidOperationException exception)
         {
             _logger.LogWarning(exception, "OTP verification failed for mobile number {MobileNumber}", mobileNumber);
-            return View("Index", await BuildPortalViewAsync(exception.Message, "danger", pendingOtpMobileNumber: mobileNumber, cancellationToken: cancellationToken));
+            return View("Index", await BuildPortalViewAsync(exception.Message, "danger", pendingOtpMobileNumber: mobileNumber, hasPendingOtpChallenge: true, cancellationToken: cancellationToken));
         }
     }
 
@@ -155,16 +155,16 @@ public class HomeController : Controller
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
     }
 
-    private async Task<PortalViewModel> BuildPortalViewAsync(string? bannerMessage = null, string bannerTone = "primary", string? assistantQuestion = null, string? assistantResponse = null, string? pendingOtpMobileNumber = null, CancellationToken cancellationToken = default)
+    private async Task<PortalViewModel> BuildPortalViewAsync(string? bannerMessage = null, string bannerTone = "primary", string? assistantQuestion = null, string? assistantResponse = null, string? pendingOtpMobileNumber = null, bool hasPendingOtpChallenge = false, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _portalDataService.GetPortalAsync(GetCustomerSession(), bannerMessage, bannerTone, assistantQuestion, assistantResponse, pendingOtpMobileNumber, cancellationToken);
+            return await _portalDataService.GetPortalAsync(GetCustomerSession(), bannerMessage, bannerTone, assistantQuestion, assistantResponse, pendingOtpMobileNumber, hasPendingOtpChallenge, cancellationToken);
         }
         catch (InvalidOperationException exception)
         {
             _logger.LogWarning(exception, "Portal view loading failed.");
-            return await _portalDataService.GetPortalAsync(null, exception.Message, "danger", assistantQuestion, assistantResponse, pendingOtpMobileNumber, cancellationToken);
+            return await _portalDataService.GetPortalAsync(null, exception.Message, "danger", assistantQuestion, assistantResponse, pendingOtpMobileNumber, hasPendingOtpChallenge, cancellationToken);
         }
     }
 
