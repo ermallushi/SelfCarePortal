@@ -9,11 +9,11 @@
                 <div class="timeline-list">
                     <div class="timeline-item">
                         <strong>1. SMS OTP request</strong>
-                        <p class="mb-0">The portal sends the OTP request to <code>http://10.89.4.49:9933/api/sendsms/sendsms</code> with originator <code>Emila</code>.</p>
+                        <p class="mb-0">The portal sends the OTP request through the configured SMS gateway with originator <code>Emila</code>.</p>
                     </div>
                     <div class="timeline-item">
                         <strong>2. CRM profile lookup</strong>
-                        <p class="mb-0">After OTP verification, the customer profile is loaded from <code>http://crm.talprd.com:9971/webservice.php</code> using <code>get_customer_profile</code>.</p>
+                        <p class="mb-0">After OTP verification, the customer profile is loaded from the configured CRM webservice using <code>get_customer_profile</code>.</p>
                     </div>
                     <div class="timeline-item">
                         <strong>3. BRM inventory discovery</strong>
@@ -28,15 +28,15 @@
         </div>
         <div class="col-lg-5">
             <div class="portal-card h-100 accent-card">
-                <div class="section-eyebrow">Configured real endpoints</div>
+                <div class="section-eyebrow">Secure configuration</div>
                 <h2 class="h4 mb-3">Production-aligned integration targets</h2>
                 <ul class="integration-list mb-0">
                     <li><span>Active Directory</span><strong>amc.al</strong></li>
-                    <li><span>SMS OTP API</span><strong>10.89.4.49:9933</strong></li>
-                    <li><span>CRM profile API</span><strong>crm.talprd.com:9971</strong></li>
-                    <li><span>BRM auth + dashboard</span><strong>10.89.14.82:30010</strong></li>
+                    <li><span>SMS OTP API</span><strong>Provided via secure config</strong></li>
+                    <li><span>CRM profile API</span><strong>Provided via secure config</strong></li>
+                    <li><span>BRM auth + dashboard</span><strong>Provided via secure config</strong></li>
                 </ul>
-                <p class="small text-white-50 mt-3 mb-0">Sensitive credentials remain externalised and should be provided through environment variables or user secrets instead of being committed into source control.</p>
+                <p class="small text-white-50 mt-3 mb-0">Sensitive hosts, internal IP addresses, access keys, passwords and service IDs remain externalised and should be supplied through environment variables or user secrets.</p>
             </div>
         </div>
     </div>

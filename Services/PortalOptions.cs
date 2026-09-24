@@ -31,7 +31,7 @@ public class BrmGatewayOptions
     public string Username { get; init; } = string.Empty;
     public string Password { get; init; } = string.Empty;
     public string AuthIpAddress { get; init; } = "::";
-    public string DashboardIpAddress { get; init; } = "10.122.25.93";
+    public string DashboardIpAddress { get; init; } = string.Empty;
     public int NumberOfDisplaySi { get; init; } = 50;
     public string FromDate { get; init; } = "2020-05-01 00:00:00";
     public string ToDate { get; init; } = "2026-12-31 00:00:00";

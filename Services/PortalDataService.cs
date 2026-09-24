@@ -439,13 +439,15 @@ public class PortalDataService : IPortalDataService
     private async Task<IReadOnlyList<string>> GetServiceInstanceNumbersAsync(string customerAccountNumber, string token, CancellationToken cancellationToken)
     {
         EnsureConfigured(_brmGatewayOptions.DashboardUrl, "the BRM dashboard URL");
+        EnsureConfigured(_brmGatewayOptions.DashboardIpAddress, "the BRM dashboard IP address");
 
         var payload = new
         {
-            ipAddress = string.IsNullOrWhiteSpace(_brmGatewayOptions.DashboardIpAddress) ? "10.122.25.93" : _brmGatewayOptions.DashboardIpAddress,
+            ipAddress = _brmGatewayOptions.DashboardIpAddress,
             source = _brmGatewayOptions.Source,
             referenceId = string.IsNullOrWhiteSpace(_brmGatewayOptions.DashboardReferenceId) ? "1234" : _brmGatewayOptions.DashboardReferenceId,
             customerAccountNumber,
+            numberOfDisplaySI = _brmGatewayOptions.NumberOfDisplaySi,
             numberOfDispaySI = _brmGatewayOptions.NumberOfDisplaySi,
             fromDate = _brmGatewayOptions.FromDate,
             toDate = _brmGatewayOptions.ToDate
