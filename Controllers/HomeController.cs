@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using SelfCarePortal.Models;
 using SelfCarePortal.Services;
@@ -8,6 +9,7 @@ namespace SelfCarePortal.Controllers;
 
 public class HomeController : Controller
 {
+    private const string CustomerSessionKey = "PortalCustomerSession";
     private readonly ILogger<HomeController> _logger;
     private readonly IPortalDataService _portalDataService;
 
@@ -17,58 +19,111 @@ public class HomeController : Controller
         _portalDataService = portalDataService;
     }
 
-    public IActionResult Index()
+    public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
-        return View(_portalDataService.GetPortal());
+        return View(await BuildPortalViewAsync(cancellationToken: cancellationToken));
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult ToggleFeature(FeatureUpdateRequest request)
+    public async Task<IActionResult> SendOtp(SendOtpRequest request, CancellationToken cancellationToken)
     {
-        if (!ModelState.IsValid)
+        var mobileNumber = NormalizeMsisdn(request.MobileNumber);
+        if (string.IsNullOrWhiteSpace(mobileNumber))
         {
-            return View("Index", _portalDataService.GetPortal("The feature update request is invalid.", "danger"));
+            return View("Index", await BuildPortalViewAsync("Enter a valid mobile number to request an OTP.", "danger", pendingOtpMobileNumber: request.MobileNumber, cancellationToken: cancellationToken));
         }
 
-        return RenderPortalOperation(() => _portalDataService.ToggleFeature(request));
+        try
+        {
+            var message = await _portalDataService.SendOtpAsync(mobileNumber, cancellationToken);
+            return View("Index", await BuildPortalViewAsync(message, "info", pendingOtpMobileNumber: mobileNumber, cancellationToken: cancellationToken));
+        }
+        catch (InvalidOperationException exception)
+        {
+            _logger.LogWarning(exception, "OTP request failed for mobile number {MobileNumber}", mobileNumber);
+            return View("Index", await BuildPortalViewAsync(exception.Message, "danger", pendingOtpMobileNumber: mobileNumber, cancellationToken: cancellationToken));
+        }
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult PurchaseAddOn(AddOnPurchaseRequest request)
+    public async Task<IActionResult> VerifyOtp(VerifyOtpRequest request, CancellationToken cancellationToken)
     {
-        if (!ModelState.IsValid)
+        var mobileNumber = NormalizeMsisdn(request.MobileNumber);
+        if (string.IsNullOrWhiteSpace(mobileNumber) || string.IsNullOrWhiteSpace(request.OtpCode))
         {
-            return View("Index", _portalDataService.GetPortal("The add-on purchase request is invalid.", "danger"));
+            return View("Index", await BuildPortalViewAsync("Enter both the mobile number and the OTP code.", "danger", pendingOtpMobileNumber: mobileNumber, cancellationToken: cancellationToken));
         }
 
-        return RenderPortalOperation(() => _portalDataService.PurchaseAddOn(request));
+        try
+        {
+            var session = await _portalDataService.VerifyOtpAsync(mobileNumber, request.OtpCode, cancellationToken);
+            SaveCustomerSession(session);
+            return View("Index", await BuildPortalViewAsync("Customer login successful.", "success", cancellationToken: cancellationToken));
+        }
+        catch (InvalidOperationException exception)
+        {
+            _logger.LogWarning(exception, "OTP verification failed for mobile number {MobileNumber}", mobileNumber);
+            return View("Index", await BuildPortalViewAsync(exception.Message, "danger", pendingOtpMobileNumber: mobileNumber, cancellationToken: cancellationToken));
+        }
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult PayInvoice(PayInvoiceRequest request)
+    public IActionResult Logout()
+    {
+        HttpContext.Session.Remove(CustomerSessionKey);
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleFeature(FeatureUpdateRequest request, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
         {
-            return View("Index", _portalDataService.GetPortal("The payment request is invalid.", "danger"));
+            return View("Index", await BuildPortalViewAsync("The feature update request is invalid.", "danger", cancellationToken: cancellationToken));
         }
 
-        return RenderPortalOperation(() => _portalDataService.PayInvoice(request));
+        return await RenderPortalOperationAsync(() => _portalDataService.ToggleFeature(request), cancellationToken);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult AskAssistant(AssistantPromptRequest request)
+    public async Task<IActionResult> PurchaseAddOn(AddOnPurchaseRequest request, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
         {
-            return View("Index", _portalDataService.GetPortal("Please enter a question for the assistant.", "danger"));
+            return View("Index", await BuildPortalViewAsync("The add-on purchase request is invalid.", "danger", cancellationToken: cancellationToken));
+        }
+
+        return await RenderPortalOperationAsync(() => _portalDataService.PurchaseAddOn(request), cancellationToken);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> PayInvoice(PayInvoiceRequest request, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View("Index", await BuildPortalViewAsync("The payment request is invalid.", "danger", cancellationToken: cancellationToken));
+        }
+
+        return await RenderPortalOperationAsync(() => _portalDataService.PayInvoice(request), cancellationToken);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AskAssistant(AssistantPromptRequest request, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View("Index", await BuildPortalViewAsync("Please enter a question for the assistant.", "danger", cancellationToken: cancellationToken));
         }
 
         var response = _portalDataService.AskAssistant(request.Question);
-        return View("Index", _portalDataService.GetPortal("Assistant response generated.", "info", request.Question, response));
+        return View("Index", await BuildPortalViewAsync("Assistant response generated.", "info", request.Question, response, cancellationToken: cancellationToken));
     }
 
     public IActionResult InvoiceDetails(string id)
@@ -99,6 +154,46 @@ public class HomeController : Controller
     {
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
     }
+
+    private async Task<PortalViewModel> BuildPortalViewAsync(string? bannerMessage = null, string bannerTone = "primary", string? assistantQuestion = null, string? assistantResponse = null, string? pendingOtpMobileNumber = null, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _portalDataService.GetPortalAsync(GetCustomerSession(), bannerMessage, bannerTone, assistantQuestion, assistantResponse, pendingOtpMobileNumber, cancellationToken);
+        }
+        catch (InvalidOperationException exception)
+        {
+            _logger.LogWarning(exception, "Portal view loading failed.");
+            return await _portalDataService.GetPortalAsync(null, exception.Message, "danger", assistantQuestion, assistantResponse, pendingOtpMobileNumber, cancellationToken);
+        }
+    }
+
+    private async Task<IActionResult> RenderPortalOperationAsync(Func<string> operation, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var message = operation();
+            return View("Index", await BuildPortalViewAsync(message, "success", cancellationToken: cancellationToken));
+        }
+        catch (InvalidOperationException exception)
+        {
+            _logger.LogWarning(exception, "Portal operation failed.");
+            return View("Index", await BuildPortalViewAsync(exception.Message, "danger", cancellationToken: cancellationToken));
+        }
+    }
+
+    private PortalCustomerSession? GetCustomerSession()
+    {
+        var json = HttpContext.Session.GetString(CustomerSessionKey);
+        return string.IsNullOrWhiteSpace(json) ? null : JsonSerializer.Deserialize<PortalCustomerSession>(json);
+    }
+
+    private void SaveCustomerSession(PortalCustomerSession session)
+    {
+        HttpContext.Session.SetString(CustomerSessionKey, JsonSerializer.Serialize(session));
+    }
+
+    private static string NormalizeMsisdn(string value) => new(value.Where(char.IsDigit).ToArray());
 
     private static byte[] BuildInvoicePdf(InvoiceSummary invoice)
     {
@@ -164,19 +259,5 @@ public class HomeController : Controller
         pdf.Append("startxref\n").Append(xrefOffset).Append("\n%%EOF");
 
         return Encoding.ASCII.GetBytes(pdf.ToString());
-    }
-
-    private IActionResult RenderPortalOperation(Func<string> operation)
-    {
-        try
-        {
-            var message = operation();
-            return View("Index", _portalDataService.GetPortal(message, "success"));
-        }
-        catch (InvalidOperationException exception)
-        {
-            _logger.LogWarning(exception, "Portal operation failed.");
-            return View("Index", _portalDataService.GetPortal(exception.Message, "danger"));
-        }
     }
 }

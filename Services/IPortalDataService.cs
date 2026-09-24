@@ -4,7 +4,9 @@ namespace SelfCarePortal.Services;
 
 public interface IPortalDataService
 {
-    PortalViewModel GetPortal(string? bannerMessage = null, string bannerTone = "primary", string? assistantQuestion = null, string? assistantResponse = null);
+    Task<PortalViewModel> GetPortalAsync(PortalCustomerSession? customerSession, string? bannerMessage = null, string bannerTone = "primary", string? assistantQuestion = null, string? assistantResponse = null, string? pendingOtpMobileNumber = null, CancellationToken cancellationToken = default);
+    Task<string> SendOtpAsync(string mobileNumber, CancellationToken cancellationToken = default);
+    Task<PortalCustomerSession> VerifyOtpAsync(string mobileNumber, string otpCode, CancellationToken cancellationToken = default);
     string ToggleFeature(FeatureUpdateRequest request);
     string PurchaseAddOn(AddOnPurchaseRequest request);
     string PayInvoice(PayInvoiceRequest request);

@@ -5,7 +5,7 @@
 <section class="card shadow-sm border-0">
     <div class="card-body">
         <h1 class="h3 mb-3">Implementation notes</h1>
-        <p>This MVC prototype demonstrates the ONE Business Portal journeys with in-memory sample data, self-service actions, invoice statement rendering and a responsive enterprise dashboard.</p>
-        <p class="mb-0">Production integration points such as OTP delivery, Azure AD single sign-on, payments, CRM, billing and CMS orchestration are represented by the architecture and workflow sections in the main portal experience.</p>
+        <p>This MVC implementation wires customer OTP login, CRM profile lookup, BRM token retrieval, BRM dashboard line discovery, and CRM service-instance enrichment behind the portal dashboard.</p>
+        <p class="mb-0">CAM access is described through the configured Active Directory domain and auto-provisioning policy, while customer line and account data is now loaded on demand after OTP verification.</p>
     </div>
 </section>

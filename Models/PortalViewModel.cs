@@ -5,6 +5,7 @@ namespace SelfCarePortal.Models;
 public class PortalViewModel
 {
     public required CustomerAccessSummary AccessSummary { get; init; }
+    public required PortalAuthenticationState Authentication { get; init; }
     public required AccountOverview Account { get; init; }
     public required IReadOnlyList<MetricCard> LineMetrics { get; init; }
     public required IReadOnlyList<CorporateLine> Lines { get; init; }
@@ -21,10 +22,19 @@ public class PortalViewModel
     public string BannerTone { get; init; } = "primary";
 }
 
+public class PortalAuthenticationState
+{
+    public bool IsCustomerAuthenticated { get; init; }
+    public string? AuthenticatedMobileNumber { get; init; }
+    public string? PendingOtpMobileNumber { get; init; }
+}
+
 public class CustomerAccessSummary
 {
     public required string CustomerLoginMethod { get; init; }
     public required string StaffLoginMethod { get; init; }
+    public required string ActiveDirectoryDomain { get; init; }
+    public bool AutoProvisionUsers { get; init; }
     public required IReadOnlyList<string> Roles { get; init; }
 }
 
@@ -118,11 +128,31 @@ public class ArchitectureSummary
     public required IReadOnlyList<string> IntegrationNotes { get; init; }
 }
 
+public class PortalCustomerSession
+{
+    public required string MobileNumber { get; init; }
+}
+
 public enum ManagedFeature
 {
     Roaming,
     InternationalCalls,
     Volte
+}
+
+public class SendOtpRequest
+{
+    [Required]
+    public string MobileNumber { get; init; } = string.Empty;
+}
+
+public class VerifyOtpRequest
+{
+    [Required]
+    public string MobileNumber { get; init; } = string.Empty;
+
+    [Required]
+    public string OtpCode { get; init; } = string.Empty;
 }
 
 public class FeatureUpdateRequest

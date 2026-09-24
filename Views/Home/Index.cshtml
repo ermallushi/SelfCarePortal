@@ -8,24 +8,61 @@
         <div>
             <span class="text-uppercase portal-kicker">Unified enterprise self-care</span>
             <h1 class="display-5 fw-bold mb-3">ONE Business Portal</h1>
-            <p class="lead mb-4">A single .NET Core MVC front door for business customers to manage TV, fiber and mobile services, review billing, and collaborate with their dedicated account team.</p>
+            <p class="lead mb-4">A .NET Core MVC front door for business customers to authenticate with mobile OTP, while CAM users are governed by Active Directory access in the <strong>@Model.AccessSummary.ActiveDirectoryDomain</strong> domain.</p>
             <div class="d-flex flex-wrap gap-2">
-                <span class="badge bg-primary-subtle text-primary-emphasis">Customer mobile OTP</span>
-                <span class="badge bg-info-subtle text-info-emphasis">CAM Azure AD SSO</span>
-                <span class="badge bg-success-subtle text-success-emphasis">RBAC-ready enterprise profiles</span>
+                <span class="badge bg-primary-subtle text-primary-emphasis">Customer SMS OTP</span>
+                <span class="badge bg-info-subtle text-info-emphasis">CAM AD domain: @Model.AccessSummary.ActiveDirectoryDomain</span>
+                <span class="badge bg-success-subtle text-success-emphasis">Auto provisioning: @(Model.AccessSummary.AutoProvisionUsers ? "enabled" : "disabled")</span>
             </div>
         </div>
         <div class="auth-summary card shadow-sm border-0 mt-4 mt-lg-0">
             <div class="card-body">
                 <h2 class="h5">Authentication & access</h2>
                 <p class="small text-muted mb-2"><strong>Customers:</strong> @Model.AccessSummary.CustomerLoginMethod</p>
-                <p class="small text-muted mb-3"><strong>Internal staff:</strong> @Model.AccessSummary.StaffLoginMethod</p>
-                <div class="d-flex flex-wrap gap-2">
+                <p class="small text-muted mb-3"><strong>CAM / staff:</strong> @Model.AccessSummary.StaffLoginMethod</p>
+                <div class="d-flex flex-wrap gap-2 mb-3">
                     @foreach (var role in Model.AccessSummary.Roles)
                     {
                         <span class="badge rounded-pill text-bg-light border">@role</span>
                     }
                 </div>
+
+                @if (Model.Authentication.IsCustomerAuthenticated)
+                {
+                    <div class="detail-card compact-card mb-3">
+                        <span>Authenticated customer</span>
+                        <strong>@Model.Authentication.AuthenticatedMobileNumber</strong>
+                    </div>
+                    <form asp-action="Logout" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Log out</button>
+                    </form>
+                }
+                else
+                {
+                    <form asp-action="SendOtp" method="post" class="mb-3">
+                        @Html.AntiForgeryToken()
+                        <label class="form-label" for="MobileNumber">Customer mobile number</label>
+                        <div class="input-group">
+                            <input class="form-control" id="MobileNumber" name="MobileNumber" value="@Model.Authentication.PendingOtpMobileNumber" placeholder="355672017758" />
+                            <button type="submit" class="btn btn-primary">Send OTP</button>
+                        </div>
+                    </form>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Authentication.PendingOtpMobileNumber))
+                    {
+                        <form asp-action="VerifyOtp" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="MobileNumber" value="@Model.Authentication.PendingOtpMobileNumber" />
+                            <label class="form-label" for="OtpCode">OTP code</label>
+                            <div class="input-group">
+                                <input class="form-control" id="OtpCode" name="OtpCode" placeholder="Enter the code received by SMS" />
+                                <button type="submit" class="btn btn-outline-primary">Verify</button>
+                            </div>
+                            <div class="form-text">Verifies the OTP sent to @Model.Authentication.PendingOtpMobileNumber and starts the CRM-backed customer session.</div>
+                        </form>
+                    }
+                }
             </div>
         </div>
     </div>
@@ -39,6 +76,22 @@
     </div>
 }
 
+@if (!Model.Authentication.IsCustomerAuthenticated)
+{
+    <section class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <h2 class="h4 mb-3">Customer access required</h2>
+            <p class="mb-2">Request an OTP for the customer mobile number, verify the code, and the portal will load:</p>
+            <ul class="mb-0">
+                <li>the CRM customer profile from the configured <code>get_customer_profile</code> operation</li>
+                <li>the BRM token and dashboard service-instance list for the customer account</li>
+                <li>the CRM <code>ServiceInstanceAccount</code> records used to resolve line MSISDN values</li>
+            </ul>
+        </div>
+    </section>
+}
+else
+{
 <section class="row g-4 mb-4">
     <div class="col-xl-7">
         <div class="card shadow-sm h-100 border-0">
@@ -46,7 +99,7 @@
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <div>
                         <h2 class="h4 mb-1">Account overview</h2>
-                        <p class="text-muted mb-0">Corporate metadata and contract visibility for @Model.Account.CompanyName.</p>
+                        <p class="text-muted mb-0">CRM-backed corporate metadata for @Model.Account.CompanyName.</p>
                     </div>
                     <span class="badge rounded-pill text-bg-dark">@Model.Account.CorporateDiscountPercentage% discount</span>
                 </div>
@@ -76,7 +129,7 @@
                         </div>
                     }
                 </div>
-                <p class="small text-muted mb-0">Real-time visual distribution of corporate lines across active, inactive and pending states.</p>
+                <p class="small text-muted mb-0">Service instances are loaded from BRM and enriched through CRM line lookups after customer OTP login.</p>
             </div>
         </div>
     </div>
@@ -87,60 +140,67 @@
         <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
             <div>
                 <h2 class="h4 mb-1">Line management & service controls</h2>
-                <p class="text-muted mb-0">Track individual lines and activate or deactivate roaming, international calls and VoLTE.</p>
+                <p class="text-muted mb-0">The line MSISDN values come from CRM service-instance lookups resolved from the BRM dashboard service inventory.</p>
             </div>
-            <span class="badge text-bg-light border">Self-service actions</span>
+            <span class="badge text-bg-light border">API-backed line list</span>
         </div>
-        <div class="table-responsive">
-            <table class="table align-middle">
-                <thead>
-                    <tr>
-                        <th>Line</th>
-                        <th>Owner</th>
-                        <th>Type</th>
-                        <th>Status</th>
-                        <th>Package</th>
-                        <th>Usage</th>
-                        <th>Controls</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @foreach (var line in Model.Lines)
-                {
-                    <tr>
-                        <td>
-                            <strong>@line.Number</strong>
-                            <div class="small text-muted">@line.Branch</div>
-                        </td>
-                        <td>@line.Owner</td>
-                        <td>@line.LineType</td>
-                        <td><span class="badge @GetStatusClass(line.ServiceStatus)">@line.ServiceStatus</span></td>
-                        <td>@line.Package</td>
-                        <td>@line.Usage</td>
-                        <td>
-                            <div class="d-flex flex-column gap-2">
-                                @foreach (var feature in new[]
-                                {
-                                    (ManagedFeature.Roaming, "Roaming", line.RoamingEnabled),
-                                    (ManagedFeature.InternationalCalls, "International Calls", line.InternationalCallsEnabled),
-                                    (ManagedFeature.Volte, "VoLTE", line.VolteEnabled)
-                                })
-                                {
-                                    <form asp-action="ToggleFeature" method="post" class="d-flex gap-2 align-items-center">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="LineNumber" value="@line.Number" />
-                                        <input type="hidden" name="Feature" value="@feature.Item1" />
-                                        <span class="small @(feature.Item3 ? "text-success" : "text-muted")">@feature.Item2</span>
-                                        <button type="submit" class="btn btn-sm @(feature.Item3 ? "btn-outline-success" : "btn-outline-secondary")">@(feature.Item3 ? "Disable" : "Enable")</button>
-                                    </form>
-                                }
-                            </div>
-                        </td>
-                    </tr>
-                }
-                </tbody>
-            </table>
-        </div>
+        @if (Model.Lines.Count == 0)
+        {
+            <div class="alert alert-warning mb-0">No lines were returned for the authenticated customer account.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Line</th>
+                            <th>Owner</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Service instance</th>
+                            <th>Usage</th>
+                            <th>Controls</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var line in Model.Lines)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@line.Number</strong>
+                                <div class="small text-muted">@line.Branch</div>
+                            </td>
+                            <td>@line.Owner</td>
+                            <td>@line.LineType</td>
+                            <td><span class="badge @GetStatusClass(line.ServiceStatus)">@line.ServiceStatus</span></td>
+                            <td>@line.Package</td>
+                            <td>@line.Usage</td>
+                            <td>
+                                <div class="d-flex flex-column gap-2">
+                                    @foreach (var feature in new[]
+                                    {
+                                        (ManagedFeature.Roaming, "Roaming", line.RoamingEnabled),
+                                        (ManagedFeature.InternationalCalls, "International Calls", line.InternationalCallsEnabled),
+                                        (ManagedFeature.Volte, "VoLTE", line.VolteEnabled)
+                                    })
+                                    {
+                                        <form asp-action="ToggleFeature" method="post" class="d-flex gap-2 align-items-center">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="LineNumber" value="@line.Number" />
+                                            <input type="hidden" name="Feature" value="@feature.Item1" />
+                                            <span class="small @(feature.Item3 ? "text-success" : "text-muted")">@feature.Item2</span>
+                                            <button type="submit" class="btn btn-sm @(feature.Item3 ? "btn-outline-success" : "btn-outline-secondary")">@(feature.Item3 ? "Disable" : "Enable")</button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
     </div>
 </section>
 
@@ -171,7 +231,7 @@
                         </select>
                     </div>
                     <div class="col-12">
-                        <button type="submit" class="btn btn-primary">Purchase add-on</button>
+                        <button type="submit" class="btn btn-primary" @(Model.Lines.Count == 0 ? "disabled" : null)>Purchase add-on</button>
                     </div>
                 </form>
                 <div class="row row-cols-1 g-3 mt-1">
@@ -383,13 +443,13 @@
                                |
 +------------------------------v------------------------------+
 |                   API Gateway & Auth Layer                  |
-|   - Customers: Mobile Number Registration/Authentication    |
-|   - CAM / Staff: Active Directory (AD / Azure AD)           |
+|   - Customers: OTP via SMS API                              |
+|   - CAM / Staff: Active Directory (@Model.AccessSummary.ActiveDirectoryDomain)           |
 +---------------+------------------------------+--------------+
                 |                              |
 +---------------v--------------+  +------------v--------------+
-|   Digital / TMF + B2B APIs   |  |        CMS Content        |
-|    (Reusable Microservices)  |  |  (Campaigns & Messages)   |
+| CRM + BRM customer services  |  |        CMS Content        |
+|  Profile, token & SI lookup  |  |  (Campaigns & Messages)   |
 +---------------+--------------+  +---------------------------+
                 |
 +---------------v---------------------------------------------+
@@ -407,6 +467,7 @@
         </div>
     </div>
 </section>
+}
 
 @functions {
     private static string GetStatusClass(string status) => status switch
